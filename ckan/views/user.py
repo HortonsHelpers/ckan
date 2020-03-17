@@ -508,7 +508,7 @@ class RequestResetView(MethodView):
         context, data_dict = self._prepare()
         id = data_dict[u'id']
 
-        context = {u'model': model, u'user': g.user}
+        context = {u'model': model, u'user': g.user, u'ignore_auth': True}
         user_obj = None
         try:
             logic.get_action(u'user_show')(context, data_dict)
