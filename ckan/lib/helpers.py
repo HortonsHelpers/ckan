@@ -28,6 +28,7 @@ from markdown import markdown
 from bleach import clean as bleach_clean, ALLOWED_TAGS, ALLOWED_ATTRIBUTES
 from pylons import url as _pylons_default_url
 from ckan.common import config, is_flask_request
+import ckan.plugins.toolkit as toolkit
 from flask import redirect as _flask_redirect
 from flask import _request_ctx_stack, current_app
 from routes import redirect_to as _routes_redirect_to
@@ -2290,7 +2291,10 @@ def resource_view_get_fields(resource):
         'limit': 0,
         'include_total': False,
     }
-    result = logic.get_action('datastore_search')({}, data)
+    try:
+        result = logic.get_action('datastore_search')({}, data)
+    except toolkit.ObjectNotFound:
+        return []
 
     fields = [field['id'] for field in result.get('fields', [])]
 
