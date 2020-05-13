@@ -287,7 +287,7 @@ class TestUser(object):
         user_pass = "TestPassword1"
         user = factories.User(password=user_pass)
 
-        # Have to do an actual login as this test relys on repoze cookie handling.
+        # Have to do an actual login as this test relies on repoze cookie handling.
         # get the form
         response = app.post("/login_generic?came_from=/user/logged_in", data={
             "login": user["name"],
@@ -310,7 +310,7 @@ class TestUser(object):
         user_pass = "TestPassword1"
         user = factories.User(password=user_pass)
 
-        # Have to do an actual login as this test relys on repoze cookie handling.
+        # Have to do an actual login as this test relies on repoze cookie handling.
         # get the form
         response = app.post("/login_generic?came_from=/user/logged_in", data={
             "login": user["name"],
@@ -333,7 +333,7 @@ class TestUser(object):
         user_pass = "TestPassword1"
         user = factories.User(password=user_pass)
 
-        # Have to do an actual login as this test relys on repoze cookie handling.
+        # Have to do an actual login as this test relies on repoze cookie handling.
         # get the form
         response = app.post("/login_generic?came_from=/user/logged_in", data={
             "login": user["name"],
@@ -351,6 +351,40 @@ class TestUser(object):
         })
 
         assert "That login name can not be modified" in response
+
+    def test_edit_user_logged_in_username_change_by_sysadmin(self):
+        user_pass = 'TestPassword1'
+        user = factories.Sysadmin(password=user_pass)
+        app = self._get_test_app()
+
+        # Have to do an actual login as this test relies on repoze cookie handling.
+        # get the form
+        response = app.get('/user/login')
+        # ...it's the second one
+        login_form = response.forms[1]
+        # fill it in
+        login_form['login'] = user['name']
+        login_form['password'] = user_pass
+        # submit it
+        login_form.submit()
+
+        env = {'REMOTE_USER': user['name'].encode('ascii')}
+        # Now the cookie is set, run the test
+        response = app.get(
+            url=url_for('user.edit', id=user['id']), extra_environ=env,
+        )
+        # existing values in the form
+        form = response.forms['user-edit-form']
+
+        # new values
+        form['name'] = 'new-name'
+        response = webtest_submit(form, 'save', status=302, extra_environ=env)
+        env['REMOTE_USER'] = 'new-name'
+        response = app.get(
+            url=response.headers['Location'],
+            extra_environ=env
+        )
+        assert_true('Profile updated' in response)
 
     def test_perform_reset_for_key_change(self, app):
         password = "TestPassword1"
