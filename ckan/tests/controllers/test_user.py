@@ -454,6 +454,34 @@ class TestUserEdit(helpers.FunctionalTestBase):
         )
         assert_true('Profile updated' in response)
 
+    def test_edit_user_logged_in_username_change_by_sysadmin(self):
+        user = factories.Sysadmin()
+        app = self._get_test_app()
+
+        # Have to do an actual login as this test relies on repoze cookie handling.
+        # get the form
+        response = app.get('/user/login')
+        # ...it's the second one
+        login_form = response.forms[1]
+        # fill it in
+        login_form['login'] = user['name']
+        login_form['password'] = user['password']
+        # submit it
+        login_form.submit()
+
+        # Now the cookie is set, run the test
+        response = app.get(
+            url=url_for('user.edit', id=user['id']),
+        )
+        # existing values in the form
+        form = response.forms['user-edit-form']
+
+        # new values
+        form['name'] = 'new-name'
+        env = {'REMOTE_USER': user['name'].encode('ascii')}
+        response = webtest_submit(form, 'save', status=200, extra_environ=env)
+        assert_true('Profile updated' in response)
+
     def test_perform_reset_for_key_change(self):
         password = 'TestPassword1'
         params = {'password1': password, 'password2': password}
