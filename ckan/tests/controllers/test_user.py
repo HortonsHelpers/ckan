@@ -421,7 +421,8 @@ class TestUserEdit(helpers.FunctionalTestBase):
         assert_true('That login name can not be modified' in response)
 
     def test_edit_user_logged_in_username_change_by_sysadmin(self):
-        user = factories.Sysadmin()
+        user_pass = 'TestPassword1'
+        user = factories.Sysadmin(password=user_pass)
         app = self._get_test_app()
 
         # Have to do an actual login as this test relies on repoze cookie handling.
@@ -431,7 +432,7 @@ class TestUserEdit(helpers.FunctionalTestBase):
         login_form = response.forms[1]
         # fill it in
         login_form['login'] = user['name']
-        login_form['password'] = user['password']
+        login_form['password'] = user_pass
         # submit it
         login_form.submit()
 
