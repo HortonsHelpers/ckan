@@ -436,18 +436,20 @@ class TestUserEdit(helpers.FunctionalTestBase):
         # submit it
         login_form.submit()
 
+        env = {'REMOTE_USER': user['name'].encode('ascii')}
         # Now the cookie is set, run the test
         response = app.get(
-            url=url_for('user.edit', id=user['id']),
+            url=url_for('user.edit', id=user['id']), extra_environ=env,
         )
         # existing values in the form
         form = response.forms['user-edit-form']
 
         # new values
         form['name'] = 'new-name'
-        env = {'REMOTE_USER': user['name'].encode('ascii')}
-        response = submit_and_follow(app, form, extra_environ=env, name='save')
-        assert_true('Profile updated' in response)
+        response = submit_and_follow(app, form, env, 'save')
+
+        user = model.Session.query(model.User).get(user['id'])
+        assert_equal(user.name, 'new-name')
 
     def test_perform_reset_for_key_change(self):
         password = 'TestPassword1'
