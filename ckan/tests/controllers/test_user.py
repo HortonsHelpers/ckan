@@ -446,10 +446,11 @@ class TestUserEdit(helpers.FunctionalTestBase):
 
         # new values
         form['name'] = 'new-name'
-        response = submit_and_follow(app, form, env, 'save')
-
-        user = model.Session.query(model.User).get(user['id'])
-        assert_equal(user.name, 'new-name')
+        response = webtest_submit(form, 'save', status=302, extra_environ=env)
+        env['REMOTE_USER'] = 'new-name'
+        response = app.get(url=response.headers['Location'],
+                   extra_environ=env)
+        assert_true('Profile updated' in response)
 
     def test_perform_reset_for_key_change(self):
         password = 'TestPassword1'
