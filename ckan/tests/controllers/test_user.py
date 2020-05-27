@@ -448,8 +448,10 @@ class TestUserEdit(helpers.FunctionalTestBase):
         form['name'] = 'new-name'
         response = webtest_submit(form, 'save', status=302, extra_environ=env)
         env['REMOTE_USER'] = 'new-name'
-        response = app.get(url=response.headers['Location'],
-                   extra_environ=env)
+        response = app.get(
+            url=response.headers['Location'],
+            extra_environ=env
+        )
         assert_true('Profile updated' in response)
 
     def test_perform_reset_for_key_change(self):
