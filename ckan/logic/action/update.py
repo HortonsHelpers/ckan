@@ -310,8 +310,9 @@ def package_update(context, data_dict):
 
     if not context.get('resources_only', False):
         #avoid revisioning by updating directly
-        model.Session.query(model.Package).filter_by(id=pkg.id).update(
-            {"metadata_modified": datetime.datetime.utcnow()})
+        now = datetime.datetime.utcnow()
+    if not pkg.metadata_modified or pkg.metadata_modified + datetime.timedelta(seconds=10) < now:model.Session.query(model.Package).filter_by(id=pkg.id).update(
+            {"metadata_modified": now})
         model.Session.refresh(pkg)
 
     pkg = model_save.package_dict_save(data, context)
