@@ -307,9 +307,12 @@ def package_update(context, data_dict):
     else:
         rev.message = _(u'REST API: Update object %s') % data.get("name")
 
-    #avoid revisioning by updating directly
+    # only update the modification timestamp every few seconds,
+    # to reduce lock contention on datasets with many
+    # frequently updated resources
     now = datetime.datetime.utcnow()
     if not pkg.metadata_modified or pkg.metadata_modified + datetime.timedelta(seconds=10) < now:
+        #avoid revisioning by updating directly
         model.Session.query(model.Package).filter_by(id=pkg.id).update(
             {"metadata_modified": now})
         model.Session.refresh(pkg)
