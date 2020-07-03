@@ -5,16 +5,12 @@ import re
 
 import copy
 import pytest
-from six import text_type
-from six.moves import xrange
 
 from ckan import model
 import ckan.logic as logic
 import ckan.logic.schema as schema
-import ckan.plugins as p
 import ckan.tests.factories as factories
 import ckan.tests.helpers as helpers
-import ckan.plugins.toolkit as tk
 from ckan import __version__
 from ckan.lib.search.common import SearchError
 
@@ -2405,6 +2401,20 @@ class TestShowResourceView(object):
 
         with pytest.raises(logic.NotFound):
             helpers.call_action("resource_view_show", id="does_not_exist")
+
+
+@pytest.mark.usefixtures("clean_db", "with_plugins")
+class ShowResourceFileMetadata(object):
+
+    def test_resource_file_metadata_show_id_missing(self):
+
+        with pytest.raises(logic.ValidationError):
+            helpers.call_action('resource_file_metadata_show')
+
+    def test_resource_file_metadata_show_id_not_found(self):
+
+        with pytest.raises(logic.NotFound):
+            helpers.call_action('resource_file_metadata_show', id='does_not_exist')
 
 
 class TestGetHelpShow(object):

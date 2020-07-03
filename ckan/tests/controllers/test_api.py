@@ -273,3 +273,34 @@ class TestApiController(object):
         assert sorted(res_dict["result"]) == sorted(
             [dataset1["name"], dataset2["name"]]
         )
+
+    def test_resource_file_metadata_show_meta_data_returned(self, monkeypatch, tmpdir, app):
+        monkeypatch.setattr(ckan_uploader, "_storage_path", str(tmpdir))
+
+        user = factories.User()
+        pkg = factories.Dataset(creator_user_id=user['id'])
+
+        url = url_for(
+            controller='api',
+            action='action',
+            logic_function='resource_create', ver='/3')
+        env = {'REMOTE_USER': user['name'].encode('ascii')}
+        postparams = {
+            'name': 'test-flask-upload',
+            'package_id': pkg['id']
+        }
+        upload_content = 'test-content,and2'
+        upload_info = ('upload', 'test-upload.csv', upload_content)
+        resp = app.post(
+            url, params=postparams,
+            upload_files=[upload_info],
+            extra_environ=env
+        )
+        result = resp.json['result']
+        assert 'upload' == result['url_type']
+        assert len(upload_content) == result['size']
+
+        metaresult = helpers.call_action('resource_file_metadata_show', id=result['id'])
+        assert len(upload_content) == metaresult['size']
+        assert 'text/csv' == metaresult['content_type']
+        assert '' == metaresult['hash']
