@@ -9,6 +9,16 @@ Changelog
 
 .. towncrier release notes start
 
+v.2.9.x
+==================
+
+Fixes:
+- Update to Interface IUploader, on get_uploader and get_resource_uploader, new method signatures delete(), download(), allowing integration with other cloud storage providers without overriding routes, also include new method signature metadata() which can be utilised by archiver and other plugins instead of trying on local disk directly.
+- Add get api `resource_file_metadata_show` which takes resource id and returns { 'content_type': content_type, 'size': length, 'hash': hash } if found
+- Allow username to be edited by sysadmins
+- Add ignore auth checks on PerformResetView so when user_show action is restricted to authorized users, password reset system still functions.
+
+
 v.2.9.1 2020-10-21
 ==================
 
