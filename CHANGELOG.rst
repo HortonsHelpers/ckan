@@ -84,6 +84,7 @@ Fixes:
 * Use returned facets in group controller (`#2713 <https://github.com/ckan/ckan/pull/5167>`_)
 * Updated translations
 * Fix broken translation in image view placeholder (`#5099 <https://github.com/ckan/ckan/pull/5116>`_)
+* Update to Interface IUploader, on get_uploader and get_resource_uploader, new method signatures delete(), download(), allowing integration with other cloud storage providers without overriding routes
 
 
 v.2.8.3 2019-07-03

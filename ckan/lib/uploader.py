@@ -7,12 +7,14 @@ import logging
 import magic
 import mimetypes
 
+import paste.fileapp
 from werkzeug.datastructures import FileStorage as FlaskFileStorage
 
 import ckan.lib.munge as munge
 import ckan.logic as logic
 import ckan.plugins as plugins
-from ckan.common import config
+from ckan.common import config, request, response
+
 
 ALLOWED_UPLOAD_TYPES = (cgi.FieldStorage, FlaskFileStorage)
 MB = 1 << 20
@@ -197,6 +199,26 @@ class Upload(object):
             except OSError:
                 pass
 
+    def delete(self):
+        ''' Delete file we are pointing at'''
+        try:
+            os.remove(self.filepath)
+        except OSError:
+            pass
+
+    def download(self):
+        ''' Generate file stream or redirect for file'''
+        fileapp = paste.fileapp.FileApp(self.filepath)
+
+        status, headers, app_iter = request.call_application(fileapp)
+        response.headers.update(dict(headers))
+        content_type, content_enc = mimetypes.guess_type(
+            self.filepath)
+        if content_type:
+            response.headers['Content-Type'] = content_type
+        response.status = status
+        return app_iter
+
 
 class ResourceUpload(object):
     def __init__(self, resource):
@@ -216,13 +238,13 @@ class ResourceUpload(object):
         self.filename = None
         self.mimetype = None
 
-        url = resource.get('url')
+        self.url = resource.get('url')
 
         upload_field_storage = resource.pop('upload', None)
         self.clear = resource.pop('clear_upload', None)
 
         if config_mimetype_guess == 'file_ext':
-            self.mimetype = mimetypes.guess_type(url)[0]
+            self.mimetype = mimetypes.guess_type(self.url)[0]
 
         if isinstance(upload_field_storage, ALLOWED_UPLOAD_TYPES):
             self.filesize = 0  # bytes
@@ -315,3 +337,26 @@ class ResourceUpload(object):
                 os.remove(filepath)
             except OSError as e:
                 pass
+
+    def delete(self, id, filename=None):
+        ''' Delete file we are pointing at'''
+        try:
+            os.remove(self.get_path(id))
+        except OSError:
+            pass
+
+    def download(self, id, filename=None):
+        ''' Generate file stream or redirect for file'''
+        filepath = self.get_path(id)
+        fileapp = paste.fileapp.FileApp(filepath)
+        # may throw OSError, which should be handled by the controller
+        # which will wrap it with abort(404, _('Resource data not found'))
+        status, headers, app_iter = request.call_application(fileapp)
+
+        response.headers.update(dict(headers))
+        content_type, content_enc = mimetypes.guess_type(
+            self.url)
+        if content_type:
+            response.headers['Content-Type'] = content_type
+        response.status = status
+        return app_iter
