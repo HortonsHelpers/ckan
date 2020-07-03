@@ -1680,6 +1680,14 @@ class IUploader(Interface):
         :param max_size: upload size can be limited by this value in MBs.
         :type max_size: int
 
+        ``delete()``
+
+        Perform a delete.
+
+        ``download()``
+
+        Provide redirect url or file stream
+
         '''
 
     def get_resource_uploader(self):
@@ -1716,6 +1724,20 @@ class IUploader(Interface):
 
         :param id: resource id
         :type id: string
+
+        ``delete(id)``
+
+        Perform a delete.
+
+        :param id: resource id, used to delete file
+        :param filename: can be None.
+
+        ``download(id)``
+
+        Provide redirect url or file stream
+
+        :param id: resource id, used to locate file
+        :param filename: can be None.
 
         '''
 
