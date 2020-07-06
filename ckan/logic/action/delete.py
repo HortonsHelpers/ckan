@@ -185,7 +185,9 @@ def resource_delete(context, data_dict):
     # Delete file if it was uploaded
     if entity.get('url_type') == 'upload':
         upload = uploader.get_resource_uploader(entity)
-        upload.delete(id)
+        # Don't break if old plugin/interface is found
+        if hasattr(upload, "delete"):
+            upload.delete(id)
 
     if pkg_dict.get('resources'):
         pkg_dict['resources'] = [r for r in pkg_dict['resources'] if not
