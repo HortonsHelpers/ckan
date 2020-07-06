@@ -1170,29 +1170,29 @@ class PackageController(base.BaseController):
         if rsc.get('url_type') == 'upload':
             upload = uploader.get_resource_uploader(rsc)
             # Be backwards compatible to ensure we have a working system.
-            if hasattr(upload, "download"):
-                try:
-                    return upload.download(rsc['id'], filename)
-                except OSError:
-                    # includes FileNotFoundError
-                    abort(404, _('Resource data not found'))
+            # if hasattr(upload, "download"):
+            try:
+                return upload.download(rsc['id'], filename)
+            except OSError:
+                # includes FileNotFoundError
+                abort(404, _('Resource data not found'))
 
-            else:
-                # To be deprecated once Uploader's have all been upgraded
-                filepath = upload.get_path(rsc['id'])
-                fileapp = paste.fileapp.FileApp(filepath)
-                try:
-                    status, headers, app_iter = \
-                        request.call_application(fileapp)
-                except OSError:
-                    abort(404, _('Resource data not found'))
-                response.headers.update(dict(headers))
-                content_type, content_enc = mimetypes.guess_type(
-                    rsc.get('url', ''))
-                if content_type:
-                    response.headers['Content-Type'] = content_type
-                response.status = status
-                return app_iter
+            # else:
+            #     # To be deprecated once Uploader's have all been upgraded
+            #     filepath = upload.get_path(rsc['id'])
+            #     fileapp = paste.fileapp.FileApp(filepath)
+            #     try:
+            #         status, headers, app_iter = \
+            #             request.call_application(fileapp)
+            #     except OSError:
+            #         abort(404, _('Resource data not found'))
+            #     response.headers.update(dict(headers))
+            #     content_type, content_enc = mimetypes.guess_type(
+            #         rsc.get('url', ''))
+            #     if content_type:
+            #         response.headers['Content-Type'] = content_type
+            #     response.status = status
+            #     return app_iter
         elif 'url' not in rsc:
             abort(404, _('No download is available'))
         h.redirect_to(rsc['url'])
