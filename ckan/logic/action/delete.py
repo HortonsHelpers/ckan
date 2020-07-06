@@ -11,6 +11,7 @@ import ckan.logic
 import ckan.logic.action
 import ckan.plugins as plugins
 import ckan.lib.dictization.model_dictize as model_dictize
+import ckan.lib.uploader as uploader
 from ckan import authz
 
 from ckan.common import _
@@ -180,6 +181,11 @@ def resource_delete(context, data_dict):
     for plugin in plugins.PluginImplementations(plugins.IResourceController):
         plugin.before_delete(context, data_dict,
                              pkg_dict.get('resources', []))
+
+    # Delete file if it was uploaded
+    if entity.get('url_type') == 'upload':
+        upload = uploader.get_resource_uploader(entity)
+        upload.delete(id)
 
     if pkg_dict.get('resources'):
         pkg_dict['resources'] = [r for r in pkg_dict['resources'] if not
