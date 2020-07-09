@@ -1724,13 +1724,19 @@ class IUploader(Interface):
         :param max_size: upload size can be limited by this value in MBs.
         :type max_size: int
 
-        ``delete()``
+        ``delete(filename)``
 
         Perform a delete.
 
-        ``download()``
+        :param filename: name of an existing asset, so the extension can delete it
+        :type filename: string
+
+        ``download(filename)``
 
         Provide redirect url or file stream
+
+        :param filename: name of an existing asset, so collect it
+        :type filename: string
 
         '''
 

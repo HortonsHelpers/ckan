@@ -180,6 +180,7 @@ class Upload(object):
         anything unless the request is actually good.
         max_size is size in MB maximum of the file'''
 
+
         if self.filename:
             with open(self.tmp_filepath, 'wb+') as output_file:
                 try:
@@ -199,21 +200,21 @@ class Upload(object):
             except OSError:
                 pass
 
-    def delete(self):
+    def delete(self, filename):
         ''' Delete file we are pointing at'''
-        try:
-            os.remove(self.filepath)
-        except OSError:
-            pass
+        if not filename.startswith('http'):
+            try:
+                os.remove(filename)
+            except OSError:
+                pass
 
-    def download(self):
+    def download(self, filename):
         ''' Generate file stream or redirect for file'''
-        fileapp = paste.fileapp.FileApp(self.filepath)
+        fileapp = paste.fileapp.FileApp(filename)
 
         status, headers, app_iter = request.call_application(fileapp)
         response.headers.update(dict(headers))
-        content_type, content_enc = mimetypes.guess_type(
-            self.filepath)
+        content_type, content_enc = mimetypes.guess_type(filename)
         if content_type:
             response.headers['Content-Type'] = content_type
         response.status = status
