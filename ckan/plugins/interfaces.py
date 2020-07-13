@@ -1657,7 +1657,7 @@ class IUploader(Interface):
         ``update_data_dict(data_dict, url_field, file_field, clear_field)``
 
         Allow the data_dict to be manipulated before it reaches any
-        validators.
+        validators. Sets Filename with utcnow date appended if preserve_filename is not set in dict
 
         :param data_dict: data_dict to be updated
         :type data_dict: dictionary
