@@ -154,13 +154,15 @@ class Upload(object):
         self.clear = data_dict.pop(clear_field, None)
         self.file_field = file_field
         self.upload_field_storage = data_dict.pop(file_field, None)
+        self.preserve_filename = data_dict.get('preserve_filename', None)
 
         if not self.storage_path:
             return
 
         if isinstance(self.upload_field_storage, (ALLOWED_UPLOAD_TYPES)):
             self.filename = self.upload_field_storage.filename
-            self.filename = str(datetime.datetime.utcnow()) + self.filename
+            if not self.preserve_filename:
+                self.filename = str(datetime.datetime.utcnow()) + self.filename
             self.filename = munge.munge_filename_legacy(self.filename)
             self.filepath = os.path.join(self.storage_path, self.filename)
             data_dict[url_field] = self.filename
