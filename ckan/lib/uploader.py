@@ -148,7 +148,7 @@ class Upload(object):
         where the FieldStorage is kept (i.e the field where the file data
         actually is). clear_field is the name of a boolean field which
         requests the upload to be deleted.  This needs to be called before
-        it reaches any validators'''
+      x  it reaches any validators'''
 
         self.url = data_dict.get(url_field, '')
         self.clear = data_dict.pop(clear_field, None)
@@ -181,7 +181,6 @@ class Upload(object):
         been validated and flushed to the db. This is so we do not store
         anything unless the request is actually good.
         max_size is size in MB maximum of the file'''
-
 
         if self.filename:
             with open(self.tmp_filepath, 'wb+') as output_file:
