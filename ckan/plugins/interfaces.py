@@ -1701,7 +1701,7 @@ class IUploader(Interface):
         ``update_data_dict(data_dict, url_field, file_field, clear_field)``
 
         Allow the data_dict to be manipulated before it reaches any
-            validators. Optionally, this data_dict can have following attribute set:
+            validators. Optionally, this data_dict can have the following attribute set:
             preserve_filename (boolean):  If none, will append utcnow date to Filename
 
         :param data_dict: data_dict to be updated
