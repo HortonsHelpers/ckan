@@ -148,7 +148,7 @@ class Upload(object):
         where the FieldStorage is kept (i.e the field where the file data
         actually is). clear_field is the name of a boolean field which
         requests the upload to be deleted.  This needs to be called before
-      x  it reaches any validators'''
+        it reaches any validators'''
 
         self.url = data_dict.get(url_field, '')
         self.clear = data_dict.pop(clear_field, None)
