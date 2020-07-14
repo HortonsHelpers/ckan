@@ -188,6 +188,8 @@ def resource_delete(context, data_dict):
         # Don't break if old plugin/interface is found
         if hasattr(upload, "delete"):
             upload.delete(id)
+        else:
+            logging.warning("%s does not have delete function, could not cleanup: %s", type(upload).__name__, id)
 
     if pkg_dict.get('resources'):
         pkg_dict['resources'] = [r for r in pkg_dict['resources'] if not
