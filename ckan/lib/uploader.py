@@ -362,3 +362,29 @@ class ResourceUpload(object):
             response.headers['Content-Type'] = content_type
         response.status = status
         return app_iter
+
+    def metadata(self, id, filename=None):
+        ''' Return meta details of file'''
+        try:
+            filepath = self.get_path(id)
+            content_type, content_encoding = mimetypes.guess_type(self.url)
+            hash, length = self._file_hashnlength(filepath)
+            return {'content_type': content_type, 'size': length, 'hash': hash}
+        except IOError as e:
+            logging.error("Could not retrieve meta data,  IOError thrown", e)
+            return e
+
+    def _file_hashnlength(local_path):
+        BLOCKSIZE = 65536
+        hasher = hashlib.sha1()
+        length = 0
+
+        with open(local_path, 'rb') as afile:
+            buf = afile.read(BLOCKSIZE)
+            while len(buf) > 0:
+                hasher.update(buf)
+                length += len(buf)
+
+                buf = afile.read(BLOCKSIZE)
+
+        return (unicode(hasher.hexdigest()), length)
