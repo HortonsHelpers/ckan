@@ -1741,6 +1741,30 @@ class TestShowResourceView(object):
             logic.NotFound,
             helpers.call_action, 'resource_view_show', id='does_not_exist')
 
+class ShowResourceFileMetadata(object):
+
+    @classmethod
+    def setup_class(cls):
+        if not p.plugin_loaded('image_view'):
+            p.load('image_view')
+
+        helpers.reset_db()
+
+    @classmethod
+    def teardown_class(cls):
+        p.unload('image_view')
+
+    def test_resource_file_metadata_show_id_missing(self):
+
+        nose.tools.assert_raises(
+            logic.ValidationError,
+            helpers.call_action, 'resource_file_metadata_show')
+
+    def test_resource_file_metadata_show_id_not_found(self):
+
+        nose.tools.assert_raises(
+            logic.NotFound,
+            helpers.call_action, 'resource_file_metadata_show', id='does_not_exist')
 
 class TestGetHelpShow(object):
 
