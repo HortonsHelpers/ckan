@@ -1696,6 +1696,14 @@ class IUploader(Interface):
         :param filename: The filename to use when downloading a file, may be None depending on the storage provider.
         :type filename: string
 
+        ``metadata(filename)``
+
+        Collect metadata of file. Returns dict { 'content_type': content_type, 'size': length, 'hash': hash }
+        Throws IOError if file does not exist
+
+        :param filename: The filename to use when collecting metadata
+        :type filename: string
+
         '''
 
     def get_resource_uploader(self):
@@ -1751,6 +1759,17 @@ class IUploader(Interface):
         :type id: string
 
         :param filename: The filename to use when storing a resource, may be None depending on the storage provider.
+        :type filename: string
+
+        ``metadata(id, filename)``
+
+        Collect metadata of resource. Returns dict { 'content_type': content_type, 'size': length, 'hash': hash }
+        Throws IOError if file does not exist
+
+        :param id: resource id, used to locate file
+        :type id: string
+
+        :param filename: The filename to use when collecting metadata, may be None depending on the storage provider.
         :type filename: string
 
         '''
