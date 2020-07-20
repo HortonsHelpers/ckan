@@ -132,6 +132,7 @@ def _file_hashnlength(local_path):
 
     return (unicode(hasher.hexdigest()), length)
 
+
 class Upload(object):
     def __init__(self, object_type, old_filename=None):
         ''' Setup upload by creating a subdirectory of the storage directory
@@ -228,7 +229,8 @@ class Upload(object):
     def download(self, filename):
         ''' Generate file stream or redirect for file'''
         # Get file from storage_path and filename
-        fileapp = paste.fileapp.FileApp(os.path.join(self.storage_path, filename))
+        fileapp = paste.fileapp.FileApp(
+            os.path.join(self.storage_path, filename))
 
         status, headers, app_iter = request.call_application(fileapp)
         response.headers.update(dict(headers))
@@ -248,8 +250,6 @@ class Upload(object):
         except IOError as e:
             logging.error("Could not retrieve meta data,  IOError thrown", e)
             return e
-
-
 
 
 class ResourceUpload(object):
