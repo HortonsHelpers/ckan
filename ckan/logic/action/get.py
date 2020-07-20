@@ -1172,7 +1172,7 @@ def resource_file_metadata_show(context, data_dict):
     if not resource:
         raise NotFound
 
-    _check_access('resource_show', resource_context, data_dict)
+    _check_access('resource_file_metadata_show', resource_context, data_dict)
 
 
     upload = uploader.get_resource_uploader(resource)
