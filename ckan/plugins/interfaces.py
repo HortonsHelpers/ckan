@@ -1764,7 +1764,7 @@ class IUploader(Interface):
         ``metadata(id, filename)``
 
         Collect metadata of resource. Returns dict { 'content_type': content_type, 'size': length, 'hash': hash }
-        or None (If file does not exist):
+        Throws IOError if file does not exist
 
         :param id: resource id, used to locate file
         :type id: string
