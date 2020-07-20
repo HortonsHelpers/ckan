@@ -1764,11 +1764,9 @@ class ShowResourceFileMetadata(object):
     @mock.patch.object(builtins, 'open', side_effect=mock_open_if_open_fails)
     @mock.patch.object(ckan_uploader, 'os', fake_os)
     @mock.patch.object(ckan_uploader, '_storage_path', new='/doesnt_exist')
-    def test_rresource_file_metadata_show_meta_data_returned(self, _):
+    def test_resource_file_metadata_show_meta_data_returned(self, _):
         user = factories.User()
         pkg = factories.Dataset(creator_user_id=user['id'])
-        # upload_content = StringIO()
-        # upload_content.write('test-content')
 
         url = url_for(
             controller='api',
@@ -1786,7 +1784,6 @@ class ShowResourceFileMetadata(object):
             url, params=postparams,
             upload_files=[upload_info],
             extra_environ=env
-            # content_type= 'application/json'
         )
         result = resp.json['result']
         eq('upload', result['url_type'])
