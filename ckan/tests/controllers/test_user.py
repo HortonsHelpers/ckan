@@ -360,7 +360,7 @@ class TestUser(object):
         # get the form
         response = app.get('/user/login')
         # ...it's the second one
-        login_form = response.forms[1]
+        login_form = response.forms
         # fill it in
         login_form['login'] = user['name']
         login_form['password'] = user_pass

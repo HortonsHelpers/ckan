@@ -1820,7 +1820,7 @@ class IUploader(Interface):
         ``metadata(filename)``
 
         Collect metadata of file. Returns dict
-          { 'content_type': content_type, 'size': length, 'hash': hash }
+        { 'content_type': content_type, 'size': length, 'hash': hash }
         Throws IOError if file does not exist
 
         :param filename: The filename to use when collecting metadata
@@ -1887,7 +1887,7 @@ class IUploader(Interface):
         ``metadata(id, filename)``
 
         Collect metadata of resource. Returns dict
-          { 'content_type': content_type, 'size': length, 'hash': hash }
+        { 'content_type': content_type, 'size': length, 'hash': hash }
         Throws IOError if file does not exist
 
         :param id: resource id, used to locate file
