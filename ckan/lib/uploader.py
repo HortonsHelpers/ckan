@@ -7,6 +7,7 @@ import datetime
 import logging
 import magic
 import mimetypes
+import six
 
 import paste.fileapp
 from werkzeug.datastructures import FileStorage as FlaskFileStorage
@@ -131,7 +132,7 @@ def _file_hashnlength(local_path):
 
             buf = afile.read(BLOCKSIZE)
 
-    return (unicode(hasher.hexdigest()), length)
+    return (six.text_type(hasher.hexdigest()), length)
 
 
 class Upload(object):
