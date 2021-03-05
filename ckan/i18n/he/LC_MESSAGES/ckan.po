@@ -12,7 +12,7 @@ msgstr ""
 "Project-Id-Version: ckan 2.9.0b0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2020-07-21 11:43+0200\n"
-"PO-Revision-Date: 2020-07-09 15:07+0000\n"
+"PO-Revision-Date: 2021-03-05 11:31+1000\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>, 2020\n"
 "Language: he\n"
 "Language-Team: Hebrew (https://www.transifex.com/okfn/teams/11162/he/)\n"
@@ -4831,6 +4831,10 @@ msgid "Full name"
 msgstr "שם מלא"
 
 #: ckan/templates/user/edit_user_form.html:10
+msgid "Displayed name"
+msgstr "שם מוצג"
+
+#: ckan/templates/user/edit_user_form.html:10
 msgid "eg. Joe Bloggs"
 msgstr "לדוגמה: ישראל ישראלי"
 
@@ -4983,6 +4987,10 @@ msgstr "שם משתמש"
 #: ckan/templates/user/new_user_form.html:6
 msgid "Full Name"
 msgstr "שם מלא"
+
+#: ckan/templates/user/new_user_form.html:6
+msgid "Displayed Name"
+msgstr "שם מוצג"
 
 #: ckan/templates/user/new_user_form.html:27
 msgid "Create Account"

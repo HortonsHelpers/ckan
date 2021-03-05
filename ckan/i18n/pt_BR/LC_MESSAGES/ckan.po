@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: ckan 2.9.0b0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2020-07-21 11:43+0200\n"
-"PO-Revision-Date: 2020-07-09 15:07+0000\n"
+"PO-Revision-Date: 2021-03-05 11:10+1000\n"
 "Last-Translator: Adrià Mercader <adria.mercader@okfn.org>, 2020\n"
 "Language: pt_BR\n"
 "Language-Team: Portuguese (Brazil) "
@@ -4819,6 +4819,10 @@ msgid "Full name"
 msgstr "Nome completo"
 
 #: ckan/templates/user/edit_user_form.html:10
+msgid "Displayed name"
+msgstr "Nome exibido"
+
+#: ckan/templates/user/edit_user_form.html:10
 msgid "eg. Joe Bloggs"
 msgstr "ex.: José da Silva"
 
@@ -4973,6 +4977,10 @@ msgstr "nome de usuário"
 #: ckan/templates/user/new_user_form.html:6
 msgid "Full Name"
 msgstr "Nome Completo"
+
+#: ckan/templates/user/new_user_form.html:6
+msgid "Displayed Name"
+msgstr "Nome Exibido"
 
 #: ckan/templates/user/new_user_form.html:27
 msgid "Create Account"

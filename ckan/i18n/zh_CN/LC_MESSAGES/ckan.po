@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: ckan 2.9.0b0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2020-07-21 11:43+0200\n"
-"PO-Revision-Date: 2020-07-09 15:07+0000\n"
+"PO-Revision-Date: 2021-03-05 12:07+1000\n"
 "Last-Translator: Adrià Mercader <adria.mercader@okfn.org>, 2020\n"
 "Language: zh_CN\n"
 "Language-Team: Chinese (China) "
@@ -4707,6 +4707,10 @@ msgid "Full name"
 msgstr "全名"
 
 #: ckan/templates/user/edit_user_form.html:10
+msgid "Displayed name"
+msgstr "显示名称"
+
+#: ckan/templates/user/edit_user_form.html:10
 msgid "eg. Joe Bloggs"
 msgstr "例如：Joe Bloggs"
 
@@ -4859,6 +4863,10 @@ msgstr "用户名"
 #: ckan/templates/user/new_user_form.html:6
 msgid "Full Name"
 msgstr "全名"
+
+#: ckan/templates/user/new_user_form.html:6
+msgid "Displayed Name"
+msgstr "显示名称"
 
 #: ckan/templates/user/new_user_form.html:27
 msgid "Create Account"

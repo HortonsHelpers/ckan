@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: ckan 2.9.0b0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2020-07-21 11:43+0200\n"
-"PO-Revision-Date: 2020-07-09 15:07+0000\n"
+"PO-Revision-Date: 2021-03-05 11:14+1000\n"
 "Last-Translator: Adrià Mercader <adria.mercader@okfn.org>, 2020\n"
 "Language: no\n"
 "Language-Team: Norwegian (https://www.transifex.com/okfn/teams/11162/no/)"
@@ -4784,6 +4784,10 @@ msgid "Full name"
 msgstr "Fullt navn"
 
 #: ckan/templates/user/edit_user_form.html:10
+msgid "Displayed name"
+msgstr "Viste navn"
+
+#: ckan/templates/user/edit_user_form.html:10
 msgid "eg. Joe Bloggs"
 msgstr "f.eks. Kari Nordmann"
 
@@ -4938,6 +4942,10 @@ msgstr "brukernavn"
 #: ckan/templates/user/new_user_form.html:6
 msgid "Full Name"
 msgstr "Fullt navn"
+
+#: ckan/templates/user/new_user_form.html:6
+msgid "Displayed Name"
+msgstr "Viste navn"
 
 #: ckan/templates/user/new_user_form.html:27
 msgid "Create Account"

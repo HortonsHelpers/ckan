@@ -13,7 +13,7 @@ msgstr ""
 "Project-Id-Version: ckan 2.9.0b0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2020-07-21 11:43+0200\n"
-"PO-Revision-Date: 2020-07-09 15:07+0000\n"
+"PO-Revision-Date: 2021-03-05 11:26+1000\n"
 "Last-Translator: Masaki Hidano <MasaGon@info-lounge.jp>, 2020\n"
 "Language: ja\n"
 "Language-Team: Japanese (https://www.transifex.com/okfn/teams/11162/ja/)\n"
@@ -4711,6 +4711,10 @@ msgid "Full name"
 msgstr "フルネーム"
 
 #: ckan/templates/user/edit_user_form.html:10
+msgid "Displayed name"
+msgstr "表示名"
+
+#: ckan/templates/user/edit_user_form.html:10
 msgid "eg. Joe Bloggs"
 msgstr "eg. Joe Bloggs"
 
@@ -4863,6 +4867,10 @@ msgstr "ユーザ名"
 #: ckan/templates/user/new_user_form.html:6
 msgid "Full Name"
 msgstr "フルネーム"
+
+#: ckan/templates/user/new_user_form.html:6
+msgid "Displayed Name"
+msgstr "表示名"
 
 #: ckan/templates/user/new_user_form.html:27
 msgid "Create Account"

@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: ckan 2.9.0b0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2020-07-21 11:43+0200\n"
-"PO-Revision-Date: 2020-07-09 15:07+0000\n"
+"PO-Revision-Date: 2021-03-05 10:58+1000\n"
 "Last-Translator: Adrià Mercader <adria.mercader@okfn.org>, 2020\n"
 "Language: th\n"
 "Language-Team: Thai (https://www.transifex.com/okfn/teams/11162/th/)\n"
@@ -4712,6 +4712,10 @@ msgid "Full name"
 msgstr "ชื่อเต็ม"
 
 #: ckan/templates/user/edit_user_form.html:10
+msgid "Displayed name"
+msgstr "ชื่อที่แสดง"
+
+#: ckan/templates/user/edit_user_form.html:10
 msgid "eg. Joe Bloggs"
 msgstr "ตัวอย่าง: สมชาย ใจกว้าง"
 
@@ -4864,6 +4868,10 @@ msgstr ""
 #: ckan/templates/user/new_user_form.html:6
 msgid "Full Name"
 msgstr "ชื่อเต็ม"
+
+#: ckan/templates/user/new_user_form.html:6
+msgid "Displayed Name"
+msgstr "ชื่อที่แสดง"
 
 #: ckan/templates/user/new_user_form.html:27
 msgid "Create Account"

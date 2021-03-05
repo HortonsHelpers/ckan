@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: ckan 2.9.0b0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2020-07-21 11:43+0200\n"
-"PO-Revision-Date: 2020-07-09 15:07+0000\n"
+"PO-Revision-Date: 2021-03-05 11:16+1000\n"
 "Last-Translator: Adrià Mercader <adria.mercader@okfn.org>, 2020\n"
 "Language: nl\n"
 "Language-Team: Dutch (https://www.transifex.com/okfn/teams/11162/nl/)\n"
@@ -4773,6 +4773,10 @@ msgid "Full name"
 msgstr "Volledige naam"
 
 #: ckan/templates/user/edit_user_form.html:10
+msgid "Displayed name"
+msgstr "Weergegeven naam"
+
+#: ckan/templates/user/edit_user_form.html:10
 msgid "eg. Joe Bloggs"
 msgstr "Bijvoorbeeld: Joe Bloggs"
 
@@ -4927,6 +4931,10 @@ msgstr "gebruikersnaam"
 #: ckan/templates/user/new_user_form.html:6
 msgid "Full Name"
 msgstr "Volledige naam"
+
+#: ckan/templates/user/new_user_form.html:6
+msgid "Displayed Name"
+msgstr "Weergegeven naam"
 
 #: ckan/templates/user/new_user_form.html:27
 msgid "Create Account"

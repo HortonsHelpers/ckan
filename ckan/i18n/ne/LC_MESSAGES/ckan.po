@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: ckan 2.6.0b0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2020-07-21 11:43+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2021-03-05 11:16+1000\n"
 "Last-Translator: Adrià Mercader <adria.mercader@okfn.org>, 2016\n"
 "Language: ne\n"
 "Language-Team: Nepali (https://www.transifex.com/okfn/teams/11162/ne/)\n"
@@ -2297,7 +2297,7 @@ msgstr ""
 
 #: ckan/public/base/javascript/modules/autocomplete.js:220
 #: ckan/public/base/javascript/modules/autocomplete.min.js:7
-#, fuzzy, python-format
+#, python-format
 msgid "Input is too short, must be at least one character"
 msgid_plural "Input is too short, must be at least %(num)d characters"
 msgstr[0] ""
@@ -4661,6 +4661,10 @@ msgid "Full name"
 msgstr ""
 
 #: ckan/templates/user/edit_user_form.html:10
+msgid "Displayed name"
+msgstr "प्रदर्शन नाम"
+
+#: ckan/templates/user/edit_user_form.html:10
 msgid "eg. Joe Bloggs"
 msgstr ""
 
@@ -4813,6 +4817,10 @@ msgstr ""
 #: ckan/templates/user/new_user_form.html:6
 msgid "Full Name"
 msgstr ""
+
+#: ckan/templates/user/new_user_form.html:6
+msgid "Displayed Name"
+msgstr "प्रदर्शन नाम"
 
 #: ckan/templates/user/new_user_form.html:27
 msgid "Create Account"
