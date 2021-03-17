@@ -1511,7 +1511,7 @@ def search_sql(context, data_dict):
         context['check_access'](table_names)
 
         for f in function_names:
-            if f not in backend.allowed_sql_functions:
+            if f.lower() not in backend.allowed_sql_functions:
                 raise toolkit.NotAuthorized({
                     'permissions': [
                         'Not authorized to call function {}'.format(f)]
@@ -1652,7 +1652,7 @@ class DatastorePostgresqlBackend(DatastoreBackend):
             )
 
             with open(allowed_sql_functions_file, 'r') as f:
-                self.allowed_sql_functions = set(line.strip() for line in f)
+                self.allowed_sql_functions = set(line.strip().lower() for line in f)
 
         # Check whether we are running one of the paster commands which means
         # that we should ignore the following tests.
