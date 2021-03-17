@@ -879,12 +879,12 @@ class TestDatastoreSQL(DatastoreLegacyTestBase):
         }
         helpers.call_action("datastore_create", **data)
 
-        sql = 'SELECT unit_test(author) from "{}"'.format(
+        sql = 'SELECT count(*) from "{}"'.format(
             resource["id"]
         )
         helpers.call_action("datastore_search_sql", sql=sql)
 
-        sql = 'SELECT UnIt_TeSt(author) from "{}"'.format(
+        sql = 'SELECT CoUnT(*) from "{}"'.format(
             resource["id"]
         )
         assert_raises(p.toolkit.NotAuthorized,
