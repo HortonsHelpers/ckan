@@ -870,6 +870,26 @@ class TestDatastoreSQL(DatastoreLegacyTestBase):
         )
         helpers.call_action("datastore_search_sql", sql=sql)
 
+    def test_quoted_allowed_functions_are_case_sensitive(self):
+        resource = factories.Resource()
+        data = {
+            "resource_id": resource["id"],
+            "force": True,
+            "records": [{"author": "bob"}, {"author": "jane"}],
+        }
+        helpers.call_action("datastore_create", **data)
+
+        sql = 'SELECT unit_test(author) from "{}"'.format(
+            resource["id"]
+        )
+        helpers.call_action("datastore_search_sql", sql=sql)
+
+        sql = 'SELECT UnIt_TeSt(author) from "{}"'.format(
+            resource["id"]
+        )
+        assert_raises(p.toolkit.NotAuthorized,
+                      helpers.call_action, "datastore_search_sql", sql=sql)
+
     def test_not_authorized_with_disallowed_functions(self):
         resource = factories.Resource()
         data = {
