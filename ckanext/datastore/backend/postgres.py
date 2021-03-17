@@ -1448,7 +1448,7 @@ def upsert(context, data_dict):
                 'query': ['Query took too long']
             })
         raise
-    except Exception as e:
+    except Exception:
         trans.rollback()
         raise
     finally:
@@ -1652,7 +1652,8 @@ class DatastorePostgresqlBackend(DatastoreBackend):
             )
 
             with open(allowed_sql_functions_file, 'r') as f:
-                self.allowed_sql_functions = set(line.strip().lower() for line in f)
+                self.allowed_sql_functions = set(line.strip().lower()
+                                                 for line in f)
 
         # Check whether we are running one of the paster commands which means
         # that we should ignore the following tests.
@@ -1828,7 +1829,7 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                     'query': ['Query took too long']
                 })
             raise
-        except Exception as e:
+        except Exception:
             trans.rollback()
             raise
         finally:
