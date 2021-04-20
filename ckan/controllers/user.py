@@ -555,7 +555,8 @@ class UserController(base.BaseController):
                 mailer.create_reset_key(user_obj)
 
                 h.flash_success(_("Your password has been reset."))
-                h.redirect_to(config.get('ckan.user_reset_landing_page', u'home.index'))
+                h.redirect_to(config.get(
+                    'ckan.user_reset_landing_page', u'home.index'))
             except NotAuthorized:
                 h.flash_error(_('Unauthorized to edit user %s') % id)
             except NotFound as e:
