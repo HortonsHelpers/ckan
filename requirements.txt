@@ -37,7 +37,7 @@ funcsigs==1.0.2
     # via beaker
 itsdangerous==0.24
     # via flask
-jinja2==2.8
+jinja2==2.11.3
     # via
     #   -r requirements.in
     #   flask
