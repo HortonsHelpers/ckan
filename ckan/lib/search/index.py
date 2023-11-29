@@ -78,11 +78,11 @@ class SearchIndex(object):
 
     def update_dict(self, data):
         """ Update data from a dictionary. """
-        log.debug("NOOP Index: %s" % ",".join(data.keys()))
+        log.debug(f'NOOP Index: {",".join(data.keys())}')
 
     def remove_dict(self, data):
         """ Delete an index entry uniquely identified by ``data``. """
-        log.debug("NOOP Delete: %s" % ",".join(data.keys()))
+        log.debug(f'NOOP Delete: {",".join(data.keys())}')
 
     def clear(self):
         """ Delete the complete index. """
@@ -125,9 +125,7 @@ class PackageSearchIndex(SearchIndex):
 
         pkg_dict['data_dict'] = data_dict_json
 
-        # add to string field for sorting
-        title = pkg_dict.get('title')
-        if title:
+        if title := pkg_dict.get('title'):
             pkg_dict['title_string'] = title
 
         # delete the package if there is no state, or the state is `deleted`
@@ -143,7 +141,7 @@ class PackageSearchIndex(SearchIndex):
             if isinstance(value, (tuple, list)):
                 value = " ".join(map(text_type, value))
             key = ''.join([c for c in key if c in KEY_CHARS])
-            pkg_dict['extras_' + key] = value
+            pkg_dict[f'extras_{key}'] = value
             if key not in index_fields:
                 pkg_dict[key] = value
         pkg_dict.pop('extras', None)
@@ -158,7 +156,7 @@ class PackageSearchIndex(SearchIndex):
             if tag.get('vocabulary_id'):
                 data = {'id': tag['vocabulary_id']}
                 vocab = logic.get_action('vocabulary_show')(context, data)
-                key = u'vocab_%s' % vocab['name']
+                key = f"vocab_{vocab['name']}"
                 if key in pkg_dict:
                     pkg_dict[key].append(tag['name'])
                 else:
@@ -172,11 +170,7 @@ class PackageSearchIndex(SearchIndex):
         groups = pkg_dict.pop('groups', [])
 
         # we use the capacity to make things private in the search index
-        if pkg_dict['private']:
-            pkg_dict['capacity'] = 'private'
-        else:
-            pkg_dict['capacity'] = 'public'
-
+        pkg_dict['capacity'] = 'private' if pkg_dict['private'] else 'public'
         pkg_dict['groups'] = [group['name'] for group in groups]
 
         # if there is an owner_org we want to add this to groups for index
@@ -198,8 +192,9 @@ class PackageSearchIndex(SearchIndex):
                            ('format', 'res_format'),
                            ('url', 'res_url'),
                            ('resource_type', 'res_type')]
-        resource_extras = [(e, 'res_extras_' + e) for e
-                            in model.Resource.get_extra_columns()]
+        resource_extras = [
+            (e, f'res_extras_{e}') for e in model.Resource.get_extra_columns()
+        ]
         # flatten the structure for indexing:
         for resource in pkg_dict.get('resources', []):
             for (okey, nkey) in resource_fields + resource_extras:
@@ -236,12 +231,7 @@ class PackageSearchIndex(SearchIndex):
             if key.endswith('_date'):
                 try:
                     date = parse(value, default=bogus_date)
-                    if date != bogus_date:
-                        value = date.isoformat() + 'Z'
-                    else:
-                        # The date field was empty, so dateutil filled it with
-                        # the default bogus date
-                        value = None
+                    value = f'{date.isoformat()}Z' if date != bogus_date else None
                 except (ValueError, IndexError):
                     continue
             new_dict[key] = value
@@ -265,15 +255,16 @@ class PackageSearchIndex(SearchIndex):
         # so we strip leading spaces because solr will sort " " before "a" or "A".
         for field_name in ['title']:
             try:
-                value = pkg_dict.get(field_name)
-                if value:
+                if value := pkg_dict.get(field_name):
                     pkg_dict[field_name] = value.lstrip()
             except KeyError:
                 pass
 
         # add a unique index_id to avoid conflicts
         import hashlib
-        pkg_dict['index_id'] = hashlib.md5('%s%s' % (pkg_dict['id'],config.get('ckan.site_id'))).hexdigest()
+        pkg_dict['index_id'] = hashlib.md5(
+            f"{pkg_dict['id']}{config.get('ckan.site_id')}"
+        ).hexdigest()
 
         for item in PluginImplementations(IPackageController):
             pkg_dict = item.before_index(pkg_dict)
@@ -305,7 +296,7 @@ class PackageSearchIndex(SearchIndex):
             raise SearchIndexError(err)
 
         commit_debug_msg = 'Not committed yet' if defer_commit else 'Committed'
-        log.debug('Updated index for %s [%s]' % (pkg_dict.get('name'), commit_debug_msg))
+        log.debug(f"Updated index for {pkg_dict.get('name')} [{commit_debug_msg}]")
 
     def commit(self):
         try:

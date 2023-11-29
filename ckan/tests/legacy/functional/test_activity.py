@@ -55,7 +55,7 @@ class TestActivity(HtmlCheckMethods):
         offset = url_for('user.activity', id=user['id'])
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s signed up' % user['fullname'] in stripped, stripped
+        assert f"{user['fullname']} signed up" in stripped, stripped
 
         # Create a new package.
         package = {
@@ -72,8 +72,10 @@ class TestActivity(HtmlCheckMethods):
         package = package_create(context, package)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s created the dataset %s ' % (
-                user['fullname'], package['title']) in stripped, stripped
+        assert (
+            f"{user['fullname']} created the dataset {package['title']} "
+            in stripped
+        ), stripped
 
         # Add a resource to the package.
         resource = {
@@ -90,18 +92,20 @@ class TestActivity(HtmlCheckMethods):
         package = package_update(context, request_data)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s added the resource %s to the dataset %s' % \
-                (user['fullname'], resource['name'], package['title']) \
-                in stripped, stripped
+        assert (
+            f"{user['fullname']} added the resource {resource['name']} to the dataset {package['title']}"
+            in stripped
+        ), stripped
 
         # Update the package.
         package['title'] =  "Billy's Updated Stats about Baseball Players"
         package = package_update(context, package)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s updated the dataset %s' \
-                % (user['fullname'], package['title']) \
-                in stripped, stripped
+        assert (
+            f"{user['fullname']} updated the dataset {package['title']}"
+            in stripped
+        ), stripped
 
         # Update the resource.
         resource = package['resources'][0]
@@ -109,9 +113,10 @@ class TestActivity(HtmlCheckMethods):
         resource = resource_update(context, resource)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s updated the resource %s in the dataset %s' \
-                % (user['fullname'], resource['name'], package['title']) \
-                in stripped, stripped
+        assert (
+            f"{user['fullname']} updated the resource {resource['name']} in the dataset {package['title']}"
+            in stripped
+        ), stripped
 
         # Delete the resource.
         context['allow_partial_update'] = False
@@ -119,23 +124,27 @@ class TestActivity(HtmlCheckMethods):
         package_update(context, package)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s deleted the resource %s from the dataset %s' % \
-                (user['fullname'], resource['name'], package['title']) \
-                in stripped, stripped
+        assert (
+            f"{user['fullname']} deleted the resource {resource['name']} from the dataset {package['title']}"
+            in stripped
+        ), stripped
 
         # Follow the package.
         follow_dataset(context, {'id': package['id']})
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s started following %s' % (user['fullname'],
-                package['title']) not in stripped, stripped
+        assert (
+            f"{user['fullname']} started following {package['title']}"
+            not in stripped
+        ), stripped
 
         # Follow another user.
         follow_user(context, {'id': 'joeadmin'})
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s started following %s' % (user['fullname'],
-                'joeadmin') not in stripped, stripped
+        assert (
+            f"{user['fullname']} started following joeadmin" not in stripped
+        ), stripped
 
         # Create a new group.
         group = {
@@ -146,24 +155,27 @@ class TestActivity(HtmlCheckMethods):
         group = group_create(context, group)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s created the group %s' % (user['fullname'], group['title']) \
-                in stripped, stripped
+        assert (
+            f"{user['fullname']} created the group {group['title']}" in stripped
+        ), stripped
 
         # Update the group.
         group['title'] = 'updated'
         group = group_update(context, group)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s updated the group %s' % (user['fullname'], group['title']) \
-                in stripped, stripped
+        assert (
+            f"{user['fullname']} updated the group {group['title']}" in stripped
+        ), stripped
 
         # Delete the group.
         group['state'] = 'deleted'
         group_update(context, group)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s deleted the group %s' % (user['fullname'], group['title']) \
-                in stripped, stripped
+        assert (
+            f"{user['fullname']} deleted the group {group['title']}" in stripped
+        ), stripped
 
         # Add a new tag to the package.
         tag = {'name': 'baseball'}
@@ -171,9 +183,10 @@ class TestActivity(HtmlCheckMethods):
         package = package_update(context, package)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s added the tag %s to the dataset %s' % \
-                (user['fullname'], tag['name'], package['title']) \
-                in stripped, stripped
+        assert (
+            f"{user['fullname']} added the tag {tag['name']} to the dataset {package['title']}"
+            in stripped
+        ), stripped
 
         # Remove the tag from the package.
         package['tags'] = []
@@ -181,36 +194,40 @@ class TestActivity(HtmlCheckMethods):
         package_update(context, package)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s removed the tag %s from the dataset %s' % \
-                (user['fullname'], tag['name'], package['title']) \
-                in stripped, stripped
+        assert (
+            f"{user['fullname']} removed the tag {tag['name']} from the dataset {package['title']}"
+            in stripped
+        ), stripped
 
         # Add an extra to the package.
         package['extras'].append({'key': 'quality', 'value': '10000'})
         package = package_update(context, package)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s added the extra "%s" to the dataset %s' % \
-                (user['fullname'], 'quality', package['title']) \
-                in stripped, stripped
+        assert (
+            f"""{user['fullname']} added the extra "quality" to the dataset {package['title']}"""
+            in stripped
+        ), stripped
 
         # Update the extra.
         package['extras'][0]['value'] = 'updated'
         package = package_update(context, package)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s changed the extra "%s" of the dataset %s' % \
-                (user['fullname'], 'quality', package['title']) \
-                in stripped, stripped
+        assert (
+            f"""{user['fullname']} changed the extra "quality" of the dataset {package['title']}"""
+            in stripped
+        ), stripped
 
         # Delete the extra.
         del package['extras'][0]
         package = package_update(context, package)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s deleted the extra "%s" from the dataset %s' % \
-                (user['fullname'], 'quality', package['title']) \
-                in stripped, stripped
+        assert (
+            f"""{user['fullname']} deleted the extra "quality" from the dataset {package['title']}"""
+            in stripped
+        ), stripped
 
         # Delete the package.
         # we need to get round the delete permission
@@ -219,23 +236,23 @@ class TestActivity(HtmlCheckMethods):
         del context['ignore_auth']
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s deleted the dataset %s' % \
-                (user['fullname'], package['title']) \
-                in stripped, stripped
+        assert (
+            f"{user['fullname']} deleted the dataset {package['title']}"
+            in stripped
+        ), stripped
 
         # Update the user's profile.
         user['about'] = ''
         user_update(context, user)
         result = self.app.get(offset, status=200)
         stripped = self.strip_tags(result)
-        assert '%s updated their profile' % user['fullname'] \
-                in stripped, stripped
+        assert f"{user['fullname']} updated their profile" in stripped, stripped
 
         # By now we've created >15 activities, but only the latest 15 should
         # appear on the page.
         result = self.app.get(offset, status=200)
         assert result.body.count('<span class="actor">') \
-                == 15, result.body.count('<span class="actor">')
+                    == 15, result.body.count('<span class="actor">')
 
         # The user's dashboard page should load successfully and have the
         # latest 15 activities on it.
@@ -245,4 +262,4 @@ class TestActivity(HtmlCheckMethods):
         result = self.app.get(offset, extra_environ=extra_environ,
                 status=200)
         assert result.body.count('<span class="actor">') == 15, \
-            result.body.count('<span class="actor">')
+                result.body.count('<span class="actor">')

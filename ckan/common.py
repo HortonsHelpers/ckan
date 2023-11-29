@@ -149,10 +149,7 @@ class CKANConfig(MutableMapping):
 
 
 def _get_request():
-    if is_flask_request():
-        return flask.request
-    else:
-        return pylons.request
+    return flask.request if is_flask_request() else pylons.request
 
 
 class CKANRequest(LocalProxy):
@@ -180,17 +177,11 @@ class CKANRequest(LocalProxy):
 
 
 def _get_c():
-    if is_flask_request():
-        return flask.g
-    else:
-        return pylons.c
+    return flask.g if is_flask_request() else pylons.c
 
 
 def _get_session():
-    if is_flask_request():
-        return flask.session
-    else:
-        return pylons.session
+    return flask.session if is_flask_request() else pylons.session
 
 
 local = Local()

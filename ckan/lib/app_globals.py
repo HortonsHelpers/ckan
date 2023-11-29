@@ -150,11 +150,11 @@ def reset():
         if key not in _CONFIG_CACHE:
             _CONFIG_CACHE[key] = config_value
         if value is not None:
-            log.debug('config `%s` set to `%s` from db' % (key, value))
+            log.debug(f'config `{key}` set to `{value}` from db')
         else:
             value = _CONFIG_CACHE[key]
             if value:
-                log.debug('config `%s` set to `%s` from config' % (key, value))
+                log.debug(f'config `{key}` set to `{value}` from config')
             else:
                 value = default
 

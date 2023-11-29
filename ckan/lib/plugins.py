@@ -104,19 +104,33 @@ def register_package_plugins(map):
             # Create a connection between the newly named type and the
             # package controller
 
-            map.connect('%s_search' % package_type, '/%s' % package_type,
-                        controller='package', action='search')
+            map.connect(
+                f'{package_type}_search',
+                f'/{package_type}',
+                controller='package',
+                action='search',
+            )
 
-            map.connect('%s_new' % package_type, '/%s/new' % package_type,
-                        controller='package', action='new')
-            map.connect('%s_read' % package_type, '/%s/{id}' % package_type,
-                        controller='package', action='read')
+            map.connect(
+                f'{package_type}_new',
+                f'/{package_type}/new',
+                controller='package',
+                action='new',
+            )
+            map.connect(
+                f'{package_type}_read',
+                '/%s/{id}' % package_type,
+                controller='package',
+                action='read',
+            )
 
             for action in ['edit', 'authz', 'history']:
-                map.connect('%s_%s' % (package_type, action),
-                            '/%s/%s/{id}' % (package_type, action),
-                            controller='package',
-                            action=action)
+                map.connect(
+                    f'{package_type}_{action}',
+                    '/%s/%s/{id}' % (package_type, action),
+                    controller='package',
+                    action=action,
+                )
 
             if package_type in _package_plugins:
                 raise ValueError("An existing IDatasetForm is "
@@ -171,12 +185,12 @@ def register_group_plugins(map):
                                      "organizations has been registered")
                 _default_organization_plugin = plugin
 
-            else:
-                if _default_group_plugin is not None:
-                    raise ValueError("More than one fallback IGroupForm for "
-                                     "groups has been registered")
+            elif _default_group_plugin is None:
                 _default_group_plugin = plugin
 
+            else:
+                raise ValueError("More than one fallback IGroupForm for "
+                                 "groups has been registered")
         for group_type in plugin.group_types():
             # Create the routes based on group_type here, this will
             # allow us to have top level objects that are actually
@@ -189,46 +203,95 @@ def register_group_plugins(map):
             # to happen but it is executed sequentially from inside the
             # routing setup
 
-            map.connect('%s_index' % group_type, '/%s' % group_type,
-                        controller=group_controller, action='index')
-            map.connect('%s_new' % group_type, '/%s/new' % group_type,
-                        controller=group_controller, action='new')
-            map.connect('%s_read' % group_type, '/%s/{id}' % group_type,
-                        controller=group_controller, action='read')
-            map.connect('%s_action' % group_type,
-                        '/%s/{action}/{id}' % group_type,
-                        controller=group_controller,
-                        requirements=dict(action='|'.join(
-                            ['edit', 'authz', 'delete', 'history', 'member_new',
-                             'member_delete', 'followers', 'follow',
-                             'unfollow', 'admins', 'activity'])))
-            map.connect('%s_edit' % group_type, '/%s/edit/{id}' % group_type,
-                        controller=group_controller, action='edit',
-                        ckan_icon='pencil-square-o')
-            map.connect('%s_members' % group_type,
-                        '/%s/members/{id}' % group_type,
-                        controller=group_controller,
-                        action='members',
-                        ckan_icon='users')
-            map.connect('%s_member_new' % group_type,
-                        '/%s/member_new/{id}' % group_type,
-                        controller=group_controller,
-                        action='member_new')
-            map.connect('%s_member_delete' % group_type,
-                        '/%s/member_delete/{id}' % group_type,
-                        controller=group_controller,
-                        action='member_delete')
-            map.connect('%s_activity' % group_type,
-                        '/%s/activity/{id}/{offset}' % group_type,
-                        controller=group_controller,
-                        action='activity', ckan_icon='clock-o'),
-            map.connect('%s_about' % group_type, '/%s/about/{id}' % group_type,
-                        controller=group_controller,
-                        action='about', ckan_icon='info-circle')
-            map.connect('%s_bulk_process' % group_type,
-                        '/%s/bulk_process/{id}' % group_type,
-                        controller=group_controller,
-                        action='bulk_process', ckan_icon='sitemap')
+            map.connect(
+                f'{group_type}_index',
+                f'/{group_type}',
+                controller=group_controller,
+                action='index',
+            )
+            map.connect(
+                f'{group_type}_new',
+                f'/{group_type}/new',
+                controller=group_controller,
+                action='new',
+            )
+            map.connect(
+                f'{group_type}_read',
+                '/%s/{id}' % group_type,
+                controller=group_controller,
+                action='read',
+            )
+            map.connect(
+                f'{group_type}_action',
+                '/%s/{action}/{id}' % group_type,
+                controller=group_controller,
+                requirements=dict(
+                    action='|'.join(
+                        [
+                            'edit',
+                            'authz',
+                            'delete',
+                            'history',
+                            'member_new',
+                            'member_delete',
+                            'followers',
+                            'follow',
+                            'unfollow',
+                            'admins',
+                            'activity',
+                        ]
+                    )
+                ),
+            )
+            map.connect(
+                f'{group_type}_edit',
+                '/%s/edit/{id}' % group_type,
+                controller=group_controller,
+                action='edit',
+                ckan_icon='pencil-square-o',
+            )
+            map.connect(
+                f'{group_type}_members',
+                '/%s/members/{id}' % group_type,
+                controller=group_controller,
+                action='members',
+                ckan_icon='users',
+            )
+            map.connect(
+                f'{group_type}_member_new',
+                '/%s/member_new/{id}' % group_type,
+                controller=group_controller,
+                action='member_new',
+            )
+            map.connect(
+                f'{group_type}_member_delete',
+                '/%s/member_delete/{id}' % group_type,
+                controller=group_controller,
+                action='member_delete',
+            )
+            (
+                map.connect(
+                    f'{group_type}_activity',
+                    '/%s/activity/{id}/{offset}' % group_type,
+                    controller=group_controller,
+                    action='activity',
+                    ckan_icon='clock-o',
+                ),
+            )
+            map.connect(
+                f'{group_type}_about',
+                '/%s/about/{id}' % group_type,
+                controller=group_controller,
+                action='about',
+                ckan_icon='info-circle',
+            )
+            map.connect(
+                f'{group_type}_bulk_process',
+                '/%s/bulk_process/{id}' % group_type,
+                controller=group_controller,
+                action='bulk_process',
+                ckan_icon='sitemap',
+            )
 
             if group_type in _group_plugins:
                 raise ValueError("An existing IGroupForm is "
@@ -324,16 +387,15 @@ class DefaultDatasetForm(object):
         if context.get('revision_id') or context.get('revision_date'):
             if context.get('revision_id'):
                 rev = base.model.Session.query(base.model.Revision) \
-                                .filter_by(id=context['revision_id']) \
-                                .first()
+                                    .filter_by(id=context['revision_id']) \
+                                    .first()
                 c.revision_date = rev.timestamp if rev else '?'
             else:
                 c.revision_date = context.get('revision_date')
 
         ## This is messy as auths take domain object not data_dict
         context_pkg = context.get('package', None)
-        pkg = context_pkg or c.pkg
-        if pkg:
+        if pkg := context_pkg or c.pkg:
             try:
                 if not context_pkg:
                     context['package'] = pkg
@@ -460,17 +522,15 @@ class DefaultGroupForm(object):
         If a context is provided, and it contains a schema, it will be
         returned.
         '''
-        schema = options.get('context', {}).get('schema', None)
-        if schema:
+        if schema := options.get('context', {}).get('schema', None):
             return schema
 
-        if options.get('api'):
-            if options.get('type') == 'create':
-                return self.form_to_db_schema_api_create()
-            else:
-                return self.form_to_db_schema_api_update()
-        else:
+        if not options.get('api'):
             return self.form_to_db_schema()
+        if options.get('type') == 'create':
+            return self.form_to_db_schema_api_create()
+        else:
+            return self.form_to_db_schema_api_update()
 
     def form_to_db_schema_api_create(self):
         return logic.schema.default_group_schema()
@@ -492,8 +552,7 @@ class DefaultGroupForm(object):
         If a context is provided, and it contains a schema, it will be
         returned.
         '''
-        schema = options.get('context', {}).get('schema', None)
-        if schema:
+        if schema := options.get('context', {}).get('schema', None):
             return schema
         return self.db_to_form_schema()
 
@@ -524,8 +583,7 @@ class DefaultGroupForm(object):
 
         ## This is messy as auths take domain object not data_dict
         context_group = context.get('group', None)
-        group = context_group or c.group
-        if group:
+        if group := context_group or c.group:
             try:
                 if not context_group:
                     context['group'] = group
@@ -619,18 +677,18 @@ class DefaultPermissionLabels(object):
             return [u'public']
 
         if dataset_obj.owner_org:
-            return [u'member-%s' % dataset_obj.owner_org]
+            return [f'member-{dataset_obj.owner_org}']
 
-        return [u'creator-%s' % dataset_obj.creator_user_id]
+        return [f'creator-{dataset_obj.creator_user_id}']
 
     def get_user_dataset_labels(self, user_obj):
         labels = [u'public']
         if not user_obj:
             return labels
 
-        labels.append(u'creator-%s' % user_obj.id)
+        labels.append(f'creator-{user_obj.id}')
 
         orgs = logic.get_action(u'organization_list_for_user')(
             {u'user': user_obj.id}, {u'permission': u'read'})
-        labels.extend(u'member-%s' % o[u'id'] for o in orgs)
+        labels.extend(f"member-{o['id']}" for o in orgs)
         return labels

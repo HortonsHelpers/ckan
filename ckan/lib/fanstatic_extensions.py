@@ -14,26 +14,22 @@ class CkanCustomRenderer(object):
         end = ''
         # IE conditionals
         if condition:
-            start = '<!--[if %s]>' % condition
+            start = f'<!--[if {condition}]>'
             end = '<![endif]-->'
             if other_browsers:
                 start += '<!-->'
-                end = '<!--' + end
+                end = f'<!--{end}'
         self.start = start
         self.end = end
 
     def __call__(self, url):
         if self.script:
-            return '%s<script>%s</script>%s' % (self.start,
-                               self.script,
-                               self.end)
-        return '%s%s%s' % (self.start,
-                           self.renderer(url),
-                           self.end)
+            return f'{self.start}<script>{self.script}</script>{self.end}'
+        return f'{self.start}{self.renderer(url)}{self.end}'
 
 
 def render_js(url):
-    return '<script src="%s"></script>' % (url,)
+    return f'<script src="{url}"></script>'
 
 #    __  __             _                ____       _       _
 #   |  \/  | ___  _ __ | | _____ _   _  |  _ \ __ _| |_ ___| |__
@@ -55,7 +51,7 @@ def render(self, library_url):
     # relpath = ''.join([self.dirname, BUNDLE_PREFIX, ';'.join(paths)])
     relpath = ''.join([core.BUNDLE_PREFIX, ';'.join(paths)])
 
-    return self.renderer('%s/%s' % (library_url, relpath))
+    return self.renderer(f'{library_url}/{relpath}')
 
 core.Bundle.render = render
 

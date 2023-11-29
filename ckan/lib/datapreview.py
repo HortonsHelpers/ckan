@@ -37,7 +37,7 @@ def compare_domains(urls):
         # except for urls that start with a /
         try:
             if not urlparse.urlparse(url).scheme and not url.startswith('/'):
-                url = '//' + url
+                url = f'//{url}'
             parsed = urlparse.urlparse(url.lower(), 'http')
             domain = (parsed.scheme, parsed.hostname, parsed.port)
         except ValueError:
@@ -97,19 +97,18 @@ def get_preview_plugin(data_dict, return_first=False):
     if num_plugins == 0:
         # we didn't find any.  see if any could be made to work
         for plug in plugins_fixable:
-            log.info('%s would allow previews.  To fix: %s' % (
-                plug['plugin'], plug['fixable']))
-        preview_plugin = None
+            log.info(f"{plug['plugin']} would allow previews.  To fix: {plug['fixable']}")
+        return None
     elif num_plugins == 1:
         # just one available
-        preview_plugin = plugins_that_can_preview[0]['plugin']
+        return plugins_that_can_preview[0]['plugin']
     else:
         # multiple plugins so get the best one
         plugs = [pl['plugin'] for pl in plugins_that_can_preview]
         log.warn('Multiple previews are possible. {0}'.format(plugs))
-        preview_plugin = max(plugins_that_can_preview,
-                             key=lambda x: x['quality'])['plugin']
-    return preview_plugin
+        return max(plugins_that_can_preview, key=lambda x: x['quality'])[
+            'plugin'
+        ]
 
 
 def get_view_plugin(view_type):
@@ -129,9 +128,7 @@ def get_view_plugins(view_types):
     '''
     view_plugins = []
     for view_type in view_types:
-        view_plugin = get_view_plugin(view_type)
-
-        if view_plugin:
+        if view_plugin := get_view_plugin(view_type):
             view_plugins.append(view_plugin)
     return view_plugins
 

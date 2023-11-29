@@ -14,7 +14,7 @@ class UsernamePasswordAuthenticator(object):
     implements(IAuthenticator)
 
     def authenticate(self, environ, identity):
-        if not ('login' in identity and 'password' in identity):
+        if 'login' not in identity or 'password' not in identity:
             return None
 
         login = identity['login']

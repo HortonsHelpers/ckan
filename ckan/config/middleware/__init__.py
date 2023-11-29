@@ -128,34 +128,33 @@ class AskAppDispatcherMiddleware(object):
 
         # We only update once for a request so we can keep
         # the language and original url which helps with 404 pages etc
-        if 'CKAN_LANG' not in environ:
-            path_parts = environ['PATH_INFO'].split('/')
-            if len(path_parts) > 1 and path_parts[1] in self.locale_list:
-                environ['CKAN_LANG'] = path_parts[1]
-                environ['CKAN_LANG_IS_DEFAULT'] = False
-                # rewrite url
-                if len(path_parts) > 2:
-                    environ['PATH_INFO'] = '/'.join([''] + path_parts[2:])
-                else:
-                    environ['PATH_INFO'] = '/'
+        if 'CKAN_LANG' in environ:
+            return
+        path_parts = environ['PATH_INFO'].split('/')
+        if len(path_parts) > 1 and path_parts[1] in self.locale_list:
+            environ['CKAN_LANG'] = path_parts[1]
+            environ['CKAN_LANG_IS_DEFAULT'] = False
+            # rewrite url
+            if len(path_parts) > 2:
+                environ['PATH_INFO'] = '/'.join([''] + path_parts[2:])
             else:
-                environ['CKAN_LANG'] = self.default_locale
-                environ['CKAN_LANG_IS_DEFAULT'] = True
+                environ['PATH_INFO'] = '/'
+        else:
+            environ['CKAN_LANG'] = self.default_locale
+            environ['CKAN_LANG_IS_DEFAULT'] = True
 
-            # Current application url
-            path_info = environ['PATH_INFO']
-            # sort out weird encodings
-            path_info = \
+        # Current application url
+        path_info = environ['PATH_INFO']
+        # sort out weird encodings
+        path_info = \
                 '/'.join(urllib.quote(pce, '') for pce in path_info.split('/'))
 
-            qs = environ.get('QUERY_STRING')
-
-            if qs:
-                # sort out weird encodings
-                qs = urllib.quote(qs, '')
-                environ['CKAN_CURRENT_URL'] = '%s?%s' % (path_info, qs)
-            else:
-                environ['CKAN_CURRENT_URL'] = path_info
+        if qs := environ.get('QUERY_STRING'):
+            # sort out weird encodings
+            qs = urllib.quote(qs, '')
+            environ['CKAN_CURRENT_URL'] = f'{path_info}?{qs}'
+        else:
+            environ['CKAN_CURRENT_URL'] = path_info
 
     def __call__(self, environ, start_response):
         '''Determine which app to call by asking each app if it can handle the
@@ -180,13 +179,14 @@ class AskAppDispatcherMiddleware(object):
         # Enforce order of precedence:
         # Flask Extension > Pylons Extension > Flask Core > Pylons Core
         if available_handlers:
-            if 'flask_app_extension' in available_handlers:
+            if (
+                'flask_app_extension' in available_handlers
+                or 'pylons_app_extension' not in available_handlers
+                and 'flask_app_core' in available_handlers
+            ):
                 app_name = 'flask_app'
             elif 'pylons_app_extension' in available_handlers:
                 app_name = 'pylons_app'
-            elif 'flask_app_core' in available_handlers:
-                app_name = 'flask_app'
-
         log.debug('Serving request via {0} app'.format(app_name))
         environ['ckan.app'] = app_name
         if app_name == 'flask_app':

@@ -585,7 +585,7 @@ class TestPackageRead(helpers.FunctionalTestBase):
         )
         app = helpers._get_test_app()
 
-        for user, user_dict in members.items():
+        for user_dict in members.values():
             response = app.get(
                 url_for(
                     controller='package',
@@ -1179,7 +1179,7 @@ class TestResourceRead(helpers.FunctionalTestBase):
 
         app = helpers._get_test_app()
 
-        for user, user_dict in members.items():
+        for user_dict in members.values():
             response = app.get(
                 url_for(
                     controller='package',

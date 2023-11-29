@@ -276,9 +276,9 @@ class TestGroupMembership(helpers.FunctionalTestBase):
         if users is None:
             users = []
         context = {'user': owner_username, 'ignore_auth': True, }
-        group = helpers.call_action('group_create', context=context,
-                                    name='test-group', users=users)
-        return group
+        return helpers.call_action(
+            'group_create', context=context, name='test-group', users=users
+        )
 
     def _get_group_add_member_page(self, app, user, group_name):
         env = {'REMOTE_USER': user['name'].encode('ascii')}
@@ -745,7 +745,7 @@ class TestGroupIndex(helpers.FunctionalTestBase):
         app = self._get_test_app()
 
         for i in xrange(1, 26):
-            _i = '0' + str(i) if i < 10 else i
+            _i = f'0{str(i)}' if i < 10 else i
             factories.Group(
                 name='test-group-{0}'.format(_i),
                 title='Test Group {0}'.format(_i))
@@ -755,7 +755,7 @@ class TestGroupIndex(helpers.FunctionalTestBase):
         response = app.get(url)
 
         for i in xrange(1, 22):
-            _i = '0' + str(i) if i < 10 else i
+            _i = f'0{str(i)}' if i < 10 else i
             assert_in('Test Group {0}'.format(_i), response)
 
         assert 'Test Group 22' not in response
@@ -766,7 +766,7 @@ class TestGroupIndex(helpers.FunctionalTestBase):
         response = app.get(url)
 
         for i in xrange(1, 22):
-            _i = '0' + str(i) if i < 10 else i
+            _i = f'0{str(i)}' if i < 10 else i
             assert_in('Test Group {0}'.format(_i), response)
 
         assert 'Test Group 22' not in response

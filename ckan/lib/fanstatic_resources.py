@@ -22,7 +22,7 @@ def min_path(path):
 
     '''
     path, ext = os.path.splitext(path)
-    return path + '.min' + ext
+    return f'{path}.min{ext}'
 
 
 def create_library(name, path, depend_base=True):
@@ -33,9 +33,9 @@ def create_library(name, path, depend_base=True):
         ''' Attempt to get the resource from the current lib or if not try
         assume it is a fully qualified resource name. '''
         try:
-            res = getattr(module, '%s/%s' % (lib_name, resource_name))
+            res = getattr(module, f'{lib_name}/{resource_name}')
         except AttributeError:
-            res = getattr(module, '%s' % resource_name)
+            res = getattr(module, f'{resource_name}')
         return res
 
     def create_resource(path, lib_name, count, inline=False):
@@ -99,7 +99,7 @@ def create_library(name, path, depend_base=True):
                 setattr(min_res, attribute, getattr(resource, attribute))
 
         # add the resource to this module
-        fanstatic_name = '%s/%s' % (lib_name, path)
+        fanstatic_name = f'{lib_name}/{path}'
         setattr(module, fanstatic_name, resource)
         return resource
 
@@ -132,16 +132,16 @@ def create_library(name, path, depend_base=True):
 
         if config.has_section('depends'):
             items = config.items('depends')
-            depends = dict((n, v.split()) for (n, v) in items)
+            depends = {n: v.split() for (n, v) in items}
         if config.has_section('groups'):
             items = config.items('groups')
-            groups = dict((n, v.split()) for (n, v) in items)
+            groups = {n: v.split() for (n, v) in items}
         if config.has_section('custom render order'):
             items = config.items('custom render order')
-            custom_render_order = dict((n, int(v)) for (n, v) in items)
+            custom_render_order = {n: int(v) for (n, v) in items}
         if config.has_section('inline scripts'):
             items = config.items('inline scripts')
-            inline_scripts = dict((n, v) for (n, v) in items)
+            inline_scripts = dict(items)
         if config.has_section('IE conditional'):
             items = config.items('IE conditional')
             for (n, v) in items:
@@ -158,10 +158,7 @@ def create_library(name, path, depend_base=True):
                 if resource not in depends:
                     depends[resource] = []
                 for dep in depends[group]:
-                    if dep not in groups:
-                        dep_resources = [dep]
-                    else:
-                        dep_resources = groups[dep]
+                    dep_resources = [dep] if dep not in groups else groups[dep]
                     diff = [
                         res for res in dep_resources if res not in depends[resource]]
                     depends[resource].extend(diff)
@@ -217,10 +214,10 @@ def create_library(name, path, depend_base=True):
     for group_name in groups:
         members = []
         for member in groups[group_name]:
-            fanstatic_name = '%s/%s' % (name, member)
+            fanstatic_name = f'{name}/{member}'
             members.append(getattr(module, fanstatic_name))
         group = Group(members)
-        fanstatic_name = '%s/%s' % (name, group_name)
+        fanstatic_name = f'{name}/{group_name}'
         setattr(module, fanstatic_name, group)
 
     # finally add the library to this module

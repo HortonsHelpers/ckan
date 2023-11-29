@@ -73,7 +73,7 @@ def index_for(_type):
         _type_n = _normalize_type(_type)
         return _INDICES[_type_n]()
     except KeyError as ke:
-        log.warn("Unknown search type: %s" % _type)
+        log.warn(f"Unknown search type: {_type}")
         return NoopSearchIndex()
 
 
@@ -84,7 +84,7 @@ def query_for(_type):
         _type_n = _normalize_type(_type)
         return _QUERIES[_type_n]()
     except KeyError as ke:
-        raise SearchError("Unknown search type: %s" % _type)
+        raise SearchError(f"Unknown search type: {_type}")
 
 
 def dispatch_by_operation(entity_type, entity, operation):
@@ -98,7 +98,7 @@ def dispatch_by_operation(entity_type, entity, operation):
         elif operation == model.domain_object.DomainObjectOperation.deleted:
             index.remove_dict(entity)
         else:
-            log.warn("Unknown operation: %s" % operation)
+            log.warn(f"Unknown operation: {operation}")
     except Exception as ex:
         log.exception(ex)
         # we really need to know about any exceptions, so reraise
@@ -122,11 +122,9 @@ class SynchronousSearchPlugin(p.SingletonPlugin):
                     {'id': entity.id}),
                 operation
             )
-        elif operation == model.domain_object.DomainObjectOperation.deleted:
+        else:
             dispatch_by_operation(entity.__class__.__name__,
                                   {'id': entity.id}, operation)
-        else:
-            log.warn("Discarded Sync. indexing for: %s" % entity)
 
 
 def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
@@ -169,7 +167,7 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
             # Packages not indexed
             package_ids = set(package_ids) - indexed_pkg_ids
 
-            if len(package_ids) == 0:
+            if not package_ids:
                 log.info('All datasets are already indexed')
                 return
         else:
@@ -194,14 +192,12 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
                     defer_commit
                 )
             except Exception as e:
-                log.error(u'Error while indexing dataset %s: %s' %
-                          (pkg_id, repr(e)))
-                if force:
-                    log.error(text_traceback())
-                    continue
-                else:
+                log.error(f'Error while indexing dataset {pkg_id}: {repr(e)}')
+                if not force:
                     raise
 
+                log.error(text_traceback())
+                continue
     model.Session.commit()
     log.info('Finished rebuilding search index.')
 
@@ -218,7 +214,7 @@ def check():
     log.debug("Checking packages search index...")
     pkgs_q = model.Session.query(model.Package).filter_by(
         state=model.State.ACTIVE)
-    pkgs = set([pkg.id for pkg in pkgs_q])
+    pkgs = {pkg.id for pkg in pkgs_q}
     indexed_pkgs = set(package_query.get_all_entity_ids(max_results=len(pkgs)))
     pkgs_not_indexed = pkgs - indexed_pkgs
     print('Packages not indexed = %i out of %i' % (len(pkgs_not_indexed),
@@ -236,8 +232,7 @@ def show(package_reference):
 
 def clear(package_reference):
     package_index = index_for(model.Package)
-    log.debug("Clearing search index for dataset %s..." %
-              package_reference)
+    log.debug(f"Clearing search index for dataset {package_reference}...")
     package_index.delete_package({'id': package_reference})
 
 
@@ -279,7 +274,7 @@ def check_solr_schema_version(schema_file=None):
 
         http_auth = None
         if solr_user is not None and solr_password is not None:
-            http_auth = solr_user + ':' + solr_password
+            http_auth = f'{solr_user}:{solr_password}'
             http_auth = 'Basic ' + http_auth.encode('base64').strip()
 
         url = solr_url.strip('/') + SOLR_SCHEMA_FILE_OFFSET
@@ -290,7 +285,7 @@ def check_solr_schema_version(schema_file=None):
 
         res = urllib2.urlopen(req)
     else:
-        url = 'file://%s' % schema_file
+        url = f'file://{schema_file}'
         res = urllib2.urlopen(url)
 
     tree = xml.dom.minidom.parseString(res.read())
@@ -300,7 +295,7 @@ def check_solr_schema_version(schema_file=None):
         raise SearchError('Could not extract version info from the SOLR'
                           ' schema, using file: \n%s' % url)
 
-    if not version in SUPPORTED_SCHEMA_VERSIONS:
+    if version not in SUPPORTED_SCHEMA_VERSIONS:
         raise SearchError('SOLR schema version not supported: %s. Supported'
                           ' versions are [%s]'
                           % (version, ', '.join(SUPPORTED_SCHEMA_VERSIONS)))

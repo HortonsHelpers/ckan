@@ -43,10 +43,7 @@ def get_jinja_env_options():
 def empty_and_escape(value):
     ''' returns '' for a None value else escapes the content useful for form
     elements. '''
-    if value is None:
-        return ''
-    else:
-        return escape(value)
+    return '' if value is None else escape(value)
 
 ### Tags
 
@@ -120,15 +117,15 @@ class CkanExtend(ext.Extension):
         if parser.stream.current.type != 'block_end':
             provided_template = parser.parse_expression().value
             if provided_template != filename:
-                raise Exception('ckan_extends tag wrong path %s in %s'
-                                % (provided_template, template_path))
+                raise Exception(
+                    f'ckan_extends tag wrong path {provided_template} in {template_path}'
+                )
             else:
-                log.critical('Remove path from ckan_extend tag in %s'
-                             % template_path)
+                log.critical(f'Remove path from ckan_extend tag in {template_path}')
 
         # provide our magic format
         # format is *<search path parent index>*<template name>
-        magic_filename = '*' + str(index) + '*' + filename
+        magic_filename = f'*{str(index)}*{filename}'
         # set template
         node.template = nodes.Const(magic_filename)
         return node
@@ -201,10 +198,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             try:
                 contents = f.read().decode(self.encoding)
             except UnicodeDecodeError as e:
-                log.critical(
-                    'Template corruption in `%s` unicode decode errors'
-                    % filename
-                )
+                log.critical(f'Template corruption in `{filename}` unicode decode errors')
                 raise e
             finally:
                 f.close()
@@ -216,6 +210,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     return path.getmtime(filename) == mtime
                 except OSError:
                     return False
+
             return contents, filename, uptodate
         raise TemplateNotFound(template)
 

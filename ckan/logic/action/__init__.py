@@ -34,14 +34,11 @@ def get_domain_object(model, domain_object_ref):
     '''
     if domain_object_ref in ('system', 'System'):
         return model.System
-    pkg = model.Package.get(domain_object_ref)
-    if pkg:
+    if pkg := model.Package.get(domain_object_ref):
         return pkg
-    group = model.Group.get(domain_object_ref)
-    if group:
+    if group := model.Group.get(domain_object_ref):
         return group
-    user = model.User.get(domain_object_ref)
-    if user:
+    if user := model.User.get(domain_object_ref):
         return user
     raise NotFound('Domain object %r not found' % domain_object_ref)
 

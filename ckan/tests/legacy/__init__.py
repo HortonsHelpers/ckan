@@ -87,18 +87,18 @@ class BaseCase(object):
         import commands
         (status, output) = commands.getstatusoutput(cmd)
         if status:
-            raise Exception("Couldn't execute cmd: %s: %s" % (cmd, output))
+            raise Exception(f"Couldn't execute cmd: {cmd}: {output}")
 
     @classmethod
     def _paster(cls, cmd, config_path_rel):
         config_path = os.path.join(config['here'], config_path_rel)
-        cls._system('paster --plugin ckan %s --config=%s' % (cmd, config_path))
+        cls._system(f'paster --plugin ckan {cmd} --config={config_path}')
 
 
 class CommonFixtureMethods(BaseCase):
 
     @classmethod
-    def create_package(self, data={}, **kwds):
+    def create_package(cls, data={}, **kwds):
         # Todo: A simpler method for just creating a package.
         CreateTestData.create_arbitrary(package_dicts=[data or kwds])
 
@@ -127,32 +127,29 @@ class CommonFixtureMethods(BaseCase):
         return model.Tag.by_name(name)
 
     def purge_package_by_name(self, package_name):
-        package = self.get_package_by_name(package_name)
-        if package:
+        if package := self.get_package_by_name(package_name):
             package.purge()
             model.repo.commit_and_remove()
 
     @classmethod
     def purge_packages(cls, pkg_names):
         for pkg_name in pkg_names:
-            pkg = model.Package.by_name(text_type(pkg_name))
-            if pkg:
+            if pkg := model.Package.by_name(text_type(pkg_name)):
                 pkg.purge()
         model.repo.commit_and_remove()
 
     @classmethod
-    def purge_all_packages(self):
+    def purge_all_packages(cls):
         all_pkg_names = [pkg.name for pkg in model.Session.query(model.Package)]
-        self.purge_packages(all_pkg_names)
+        cls.purge_packages(all_pkg_names)
 
     def purge_group_by_name(self, group_name):
-        group = self.get_group_by_name(group_name)
-        if group:
+        if group := self.get_group_by_name(group_name):
             group.purge()
             model.repo.commit_and_remove()
 
     @classmethod
-    def clear_all_tst_ratings(self):
+    def clear_all_tst_ratings(cls):
         ratings = model.Session.query(model.Rating).filter_by(package=model.Package.by_name(u'annakarenina')).all()
         ratings += model.Session.query(model.Rating).filter_by(package=model.Package.by_name(u'warandpeace')).all()
         for rating in ratings[:]:
@@ -190,10 +187,10 @@ class CommonFixtureMethods(BaseCase):
 class CheckMethods(BaseCase):
 
     def assert_true(self, value):
-        assert value, "Not true: '%s'" % value
+        assert value, f"Not true: '{value}'"
 
     def assert_false(self, value):
-        assert not value, "Not false: '%s'" % value
+        assert not value, f"Not false: '{value}'"
 
     def assert_equal(self, value1, value2):
         assert value1 == value2, 'Not equal: %s' % ((value1, value2),)
@@ -210,16 +207,20 @@ class CheckMethods(BaseCase):
             assert False, "Didn't raise '%s' when calling: %s with %s" % (exception_class, callable, (args, kwds))
 
     def assert_contains(self, sequence, item):
-        assert item in sequence, "Sequence %s does not contain item: %s" % (sequence, item)
+        assert item in sequence, f"Sequence {sequence} does not contain item: {item}"
 
     def assert_missing(self, sequence, item):
-        assert item not in sequence, "Sequence %s does contain item: %s" % (sequence, item)
+        assert item not in sequence, f"Sequence {sequence} does contain item: {item}"
 
     def assert_len(self, sequence, count):
-        assert len(sequence) == count, "Length of sequence %s was not %s." % (sequence, count)
+        assert (
+            len(sequence) == count
+        ), f"Length of sequence {sequence} was not {count}."
 
     def assert_isinstance(self, object, kind):
-        assert isinstance(object, kind), "Object %s is not an instance of %s." % (object, kind)
+        assert isinstance(
+            object, kind
+        ), f"Object {object} is not an instance of {kind}."
 
 
 class TestCase(CommonFixtureMethods, CheckMethods, BaseCase):
@@ -260,12 +261,11 @@ class CkanServerCase(BaseCase):
             config_file = config['__file__']
         config_path = config_abspath(config_file)
         import subprocess
-        process = subprocess.Popen(['paster', 'serve', config_path])
-        return process
+        return subprocess.Popen(['paster', 'serve', config_path])
 
     @staticmethod
     def _wait_for_url(url='http://127.0.0.1:5000/', timeout=15):
-        for i in range(int(timeout)*100):
+        for _ in range(int(timeout)*100):
             import urllib2
             import time
             try:
@@ -327,31 +327,25 @@ def setup_test_search_index():
     #plugins.load('synchronous_search')
 
 def is_search_supported():
-    is_supported_db = not model.engine_is_sqlite()
-    return is_supported_db
+    return not model.engine_is_sqlite()
 
 def are_foreign_keys_supported():
     return not model.engine_is_sqlite()
 
 def is_regex_supported():
-    is_supported_db = not model.engine_is_sqlite()
-    return is_supported_db
+    return not model.engine_is_sqlite()
 
 def is_migration_supported():
-    is_supported_db = not model.engine_is_sqlite()
-    return is_supported_db
+    return not model.engine_is_sqlite()
 
 def is_datastore_supported():
-    # we assume that the datastore uses the same db engine that ckan uses
-    is_supported_db = model.engine_is_pg()
-    return is_supported_db
+    return model.engine_is_pg()
 
 def regex_related(test):
     def skip_test(*args):
         raise SkipTest("Regex not supported")
-    if not is_regex_supported():
-        return make_decorator(test)(skip_test)
-    return test
+
+    return make_decorator(test)(skip_test) if not is_regex_supported() else test
 
 def clear_flash(res=None):
     messages = h._flash.pop_messages()

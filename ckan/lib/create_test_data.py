@@ -99,7 +99,7 @@ class CreateTestData(object):
 
         ckan.model.Session.commit()
 
-    def create_vocabs_test_data(cls):
+    def create_vocabs_test_data(self):
         import ckan.model
         CreateTestData.create()
         sysadmin_user = ckan.model.User.get('testsysadmin')
@@ -166,8 +166,9 @@ class CreateTestData(object):
                     if item.has_key(field):
                         pkg_dict[field] = text_type(item[field])
                 if model.Package.by_name(pkg_dict['name']):
-                    log.warning('Cannot create package "%s" as it already exists.' % \
-                                    (pkg_dict['name']))
+                    log.warning(
+                        f"""Cannot create package "{pkg_dict['name']}" as it already exists."""
+                    )
                     continue
                 pkg = model.Package(**pkg_dict)
                 model.Session.add(pkg)
@@ -218,7 +219,7 @@ class CreateTestData(object):
                         for group_name in group_names:
                             group = model.Group.by_name(text_type(group_name))
                             if not group:
-                                if not group_name in new_groups:
+                                if group_name not in new_groups:
                                     group = model.Group(name=
                                                         text_type(group_name))
                                     model.Session.add(group)
@@ -232,7 +233,7 @@ class CreateTestData(object):
                                     # the new_groups dict instead.
                                     group = new_groups[group_name]
                             capacity = 'organization' if group.is_organization\
-                                       else 'public'
+                                           else 'public'
                             member = model.Member(group=group, table_id=pkg.id,
                                                   table_name='package',
                                                   capacity=capacity)
@@ -309,17 +310,21 @@ class CreateTestData(object):
         an admin user and be a member of other groups.'''
         rev = model.repo.new_revision()
         rev.author = cls.author
-        if admin_user_name:
-            admin_users = [model.User.by_name(admin_user_name)]
-        else:
-            admin_users = []
+        admin_users = [model.User.by_name(admin_user_name)] if admin_user_name else []
         assert isinstance(group_dicts, (list, tuple))
-        group_attributes = set(('name', 'title', 'description', 'parent_id',
-                                'type', 'is_organization'))
+        group_attributes = {
+            'name',
+            'title',
+            'description',
+            'parent_id',
+            'type',
+            'is_organization',
+        }
         for group_dict in group_dicts:
             if model.Group.by_name(text_type(group_dict['name'])):
-                log.warning('Cannot create group "%s" as it already exists.' %
-                            group_dict['name'])
+                log.warning(
+                    f"""Cannot create group "{group_dict['name']}" as it already exists."""
+                )
                 continue
             pkg_names = group_dict.pop('packages', [])
             group = model.Group(name=text_type(group_dict['name']))
@@ -339,7 +344,7 @@ class CreateTestData(object):
             model.Session.add(group)
             admins = [model.User.by_name(user_name)
                       for user_name in group_dict.get('admins', [])] + \
-                     admin_users
+                         admin_users
             for admin in admins:
                 member = model.Member(group=group, table_id=admin.id,
                                       table_name='user', capacity='admin')
@@ -505,8 +510,10 @@ left arrow <
     @classmethod
     def _create_user_without_commit(cls, name='', **user_dict):
         if model.User.by_name(name):
-            log.warning('Cannot create user "%s" as it already exists.' %
-                        name or user_dict['name'])
+            log.warning(
+                f'Cannot create user "{name}" as it already exists.'
+                or user_dict['name']
+            )
             return
         # User objects are not revisioned so no need to create a revision
         user_ref = name
@@ -544,16 +551,13 @@ left arrow <
         '''Purges packages etc. that were created by this class.'''
         for pkg_name in cls.pkg_names:
             model.Session().autoflush = False
-            pkg = model.Package.by_name(text_type(pkg_name))
-            if pkg:
+            if pkg := model.Package.by_name(text_type(pkg_name)):
                 pkg.purge()
         for tag_name in cls.tag_names:
-            tag = model.Tag.by_name(text_type(tag_name))
-            if tag:
+            if tag := model.Tag.by_name(text_type(tag_name)):
                 tag.purge()
         for group_name in cls.group_names:
-            group = model.Group.by_name(text_type(group_name))
-            if group:
+            if group := model.Group.by_name(text_type(group_name)):
                 model.Session.delete(group)
         revs = model.Session.query(model.Revision).filter_by(author=cls.author)
         for rev in revs:
@@ -564,8 +568,7 @@ left arrow <
             model.Session.commit()
             model.Session.delete(rev)
         for user_name in cls.user_refs:
-            user = model.User.get(text_type(user_name))
-            if user:
+            if user := model.User.get(text_type(user_name)):
                 user.purge()
         model.Session.commit()
         model.Session.remove()

@@ -16,10 +16,7 @@ from ckan.lib.create_test_data import CreateTestData
 from ckan.tests import factories
 
 def _make_calls(*args):
-    out = []
-    for arg in args:
-        out.append(((arg,), {}))
-    return out
+    return [((arg,), {}) for arg in args]
 
 def get_calls(mock_observer_func):
     '''Given a mock IPluginObserver method, returns the plugins that caused its
@@ -100,7 +97,11 @@ class TestPlugins(object):
         plugins.load_all()
 
         # synchronous_search automatically gets loaded
-        current_plugins = set([plugins.get_plugin(p) for p in ['mapper_plugin', 'routes_plugin', 'synchronous_search'] + find_system_plugins()])
+        current_plugins = {
+            plugins.get_plugin(p)
+            for p in ['mapper_plugin', 'routes_plugin', 'synchronous_search']
+            + find_system_plugins()
+        }
         assert PluginGlobals.env().services == current_plugins
         # cleanup
         config['ckan.plugins'] = config_plugins

@@ -52,7 +52,7 @@ def _encode_params(params):
 
 def url_with_params(url, params):
     params = _encode_params(params)
-    return url + u'?' + urlencode(params)
+    return f'{url}?{urlencode(params)}'
 
 
 def search_url(params, package_type=None):
@@ -121,10 +121,7 @@ class PackageController(base.BaseController):
 
         parts = [x for x in request.path.split('/') if x]
 
-        idx = -1
-        if expecting_name:
-            idx = -2
-
+        idx = -2 if expecting_name else -1
         pt = parts[idx]
         if pt == 'package':
             pt = 'dataset'
@@ -211,10 +208,10 @@ class PackageController(base.BaseController):
             fq = ''
             for (param, value) in request.params.items():
                 if param not in ['q', 'page', 'sort'] \
-                        and len(value) and not param.startswith('_'):
+                            and len(value) and not param.startswith('_'):
                     if not param.startswith('ext_'):
                         c.fields.append((param, value))
-                        fq += ' %s:"%s"' % (param, value)
+                        fq += f' {param}:"{value}"'
                         if param not in c.fields_grouped:
                             c.fields_grouped[param] = [value]
                         else:
@@ -315,14 +312,21 @@ class PackageController(base.BaseController):
             abort(403, _('Not authorized to see this page'))
 
         c.search_facets_limits = {}
-        for facet in c.search_facets.keys():
+        for facet in c.search_facets:
             try:
-                limit = int(request.params.get('_%s_limit' % facet,
-                            int(config.get('search.facets.default', 10))))
+                limit = int(
+                    request.params.get(
+                        f'_{facet}_limit',
+                        int(config.get('search.facets.default', 10)),
+                    )
+                )
             except ValueError:
-                abort(400, _('Parameter "{parameter_name}" is not '
-                             'an integer').format(
-                      parameter_name='_%s_limit' % facet))
+                abort(
+                    400,
+                    _('Parameter "{parameter_name}" is not ' 'an integer').format(
+                        parameter_name=f'_{facet}_limit'
+                    ),
+                )
             c.search_facets_limits[facet] = limit
 
         self._setup_template_variables(context, {},
@@ -373,9 +377,7 @@ class PackageController(base.BaseController):
                 try:
                     date = h.date_str_to_datetime(revision_ref)
                     context['revision_date'] = date
-                except TypeError as e:
-                    abort(400, _('Invalid revision format: %r') % e.args)
-                except ValueError as e:
+                except (TypeError, ValueError) as e:
                     abort(400, _('Invalid revision format: %r') % e.args)
         elif len(split) > 2:
             abort(400, _('Invalid revision format: %r') %
@@ -433,7 +435,7 @@ class PackageController(base.BaseController):
                 if 'pkg_name' in dict(request.params):
                     id = request.params.getone('pkg_name')
                 c.error = \
-                    _('Select two revisions before doing the comparison.')
+                        _('Select two revisions before doing the comparison.')
             else:
                 params['diff_entity'] = 'package'
                 h.redirect_to(controller='revision', action='diff', **params)
@@ -479,13 +481,13 @@ class PackageController(base.BaseController):
                     break
                 if revision_dict['message']:
                     item_title = u'%s' % revision_dict['message'].\
-                        split('\n')[0]
+                            split('\n')[0]
                 else:
-                    item_title = u'%s' % revision_dict['id']
+                    item_title = f"{revision_dict['id']}"
                 item_link = h.url_for(controller='revision', action='read',
                                       id=revision_dict['id'])
                 item_description = _('Log message: ')
-                item_description += '%s' % (revision_dict['message'] or '')
+                item_description += f"{revision_dict['message'] or ''}"
                 item_author_name = revision_dict['author']
                 item_pubdate = revision_date
                 feed.add_item(
@@ -637,7 +639,7 @@ class PackageController(base.BaseController):
         if request.method == 'POST' and not data:
             save_action = request.params.get('save')
             data = data or \
-                clean_dict(dict_fns.unflatten(tuplize_dict(parse_params(
+                    clean_dict(dict_fns.unflatten(tuplize_dict(parse_params(
                                                            request.POST))))
             # we don't want to include save as it is part of the form
             del data['save']
@@ -647,14 +649,13 @@ class PackageController(base.BaseController):
             context = {'model': model, 'session': model.Session,
                        'user': c.user, 'auth_user_obj': c.userobj}
 
-            # see if we have any data that we are trying to save
-            data_provided = False
-            for key, value in data.iteritems():
-                if ((value or isinstance(value, cgi.FieldStorage))
-                        and key != 'resource_type'):
-                    data_provided = True
-                    break
-
+            data_provided = any(
+                (
+                    (value or isinstance(value, cgi.FieldStorage))
+                    and key != 'resource_type'
+                )
+                for key, value in data.iteritems()
+            )
             if not data_provided and save_action != "go-dataset-complete":
                 if save_action == 'go-dataset':
                     # go to final stage of adddataset
@@ -868,17 +869,13 @@ class PackageController(base.BaseController):
         Given the id of a package this method will return the type of the
         package, or 'dataset' if no type is currently set
         """
-        pkg = model.Package.get(id)
-        if pkg:
-            return pkg.type or 'dataset'
-        return None
+        return pkg.type or 'dataset' if (pkg := model.Package.get(id)) else None
 
     def _tag_string_to_list(self, tag_string):
         ''' This is used to change tags from a sting to a list of dicts '''
         out = []
         for tag in tag_string.split(','):
-            tag = tag.strip()
-            if tag:
+            if tag := tag.strip():
                 out.append({'name': tag,
                             'state': 'active'})
         return out
@@ -1014,16 +1011,16 @@ class PackageController(base.BaseController):
         @param action - What the action of the edit was
         '''
         assert action in ('new', 'edit')
-        url = request.params.get('return_to') or \
-            config.get('package_%s_return_url' % action)
+        url = request.params.get('return_to') or config.get(
+            f'package_{action}_return_url'
+        )
         if url:
             url = url.replace('<NAME>', pkgname)
+        elif package_type is None or package_type == 'dataset':
+            url = h.url_for(controller='package', action='read',
+                            id=pkgname)
         else:
-            if package_type is None or package_type == 'dataset':
-                url = h.url_for(controller='package', action='read',
-                                id=pkgname)
-            else:
-                url = h.url_for('{0}_read'.format(package_type), id=pkgname)
+            url = h.url_for('{0}_read'.format(package_type), id=pkgname)
         h.redirect_to(url)
 
     def delete(self, id):
@@ -1109,13 +1106,12 @@ class PackageController(base.BaseController):
         license_id = c.package.get('license_id')
         try:
             c.package['isopen'] = model.Package.\
-                get_license_register()[license_id].isopen()
+                    get_license_register()[license_id].isopen()
         except KeyError:
             c.package['isopen'] = False
 
         # Deprecated: c.datastore_api - use h.action_url instead
-        c.datastore_api = '%s/api/action' % \
-            config.get('ckan.site_url', '').rstrip('/')
+        c.datastore_api = f"{config.get('ckan.site_url', '').rstrip('/')}/api/action"
 
         c.resource['can_be_previewed'] = self._resource_preview(
             {'resource': c.resource, 'package': c.package})
@@ -1250,8 +1246,7 @@ class PackageController(base.BaseController):
             abort(404, _('Dataset not found'))
 
         if request.method == 'POST':
-            new_group = request.POST.get('group_added')
-            if new_group:
+            if new_group := request.POST.get('group_added'):
                 data_dict = {"id": new_group,
                              "object": id,
                              "object_type": 'package',
@@ -1261,12 +1256,14 @@ class PackageController(base.BaseController):
                 except NotFound:
                     abort(404, _('Group not found'))
 
-            removed_group = None
-            for param in request.POST:
-                if param.startswith('group_remove'):
-                    removed_group = param.split('.')[-1]
-                    break
-            if removed_group:
+            if removed_group := next(
+                (
+                    param.split('.')[-1]
+                    for param in request.POST
+                    if param.startswith('group_remove')
+                ),
+                None,
+            ):
                 data_dict = {"id": removed_group,
                              "object": id,
                              "object_type": 'package'}
@@ -1280,10 +1277,8 @@ class PackageController(base.BaseController):
         context['is_member'] = True
         users_groups = get_action('group_list_authz')(context, data_dict)
 
-        pkg_group_ids = set(group['id'] for group
-                            in c.pkg_dict.get('groups', []))
-        user_group_ids = set(group['id'] for group
-                             in users_groups)
+        pkg_group_ids = {group['id'] for group in c.pkg_dict.get('groups', [])}
+        user_group_ids = {group['id'] for group in users_groups}
 
         c.group_dropdown = [[group['id'], group['display_name']]
                             for group in users_groups if
@@ -1334,8 +1329,7 @@ class PackageController(base.BaseController):
             c.resource_json = h.json.dumps(c.resource)
 
             # double check that the resource belongs to the specified package
-            if not c.resource['id'] in [r['id']
-                                        for r in c.package['resources']]:
+            if c.resource['id'] not in [r['id'] for r in c.package['resources']]:
                 raise NotFound
             dataset_type = c.package['type'] or 'dataset'
 
@@ -1379,17 +1373,17 @@ class PackageController(base.BaseController):
         # for data api url - see http://trac.ckan.org/ticket/2639
         # fix by relocating this to url attribute which is the default location
         if 'dataset' in recline_state and \
-                'elasticsearch_url' in recline_state['dataset']:
+                    'elasticsearch_url' in recline_state['dataset']:
             recline_state['dataset']['url'] = \
-                recline_state['dataset']['elasticsearch_url']
+                    recline_state['dataset']['elasticsearch_url']
 
         # Ensure only the currentView is available
         # default to grid view if none specified
         if not recline_state.get('currentView', None):
             recline_state['currentView'] = 'grid'
-        for k in recline_state.keys():
+        for k in recline_state:
             if k.startswith('view-') and \
-                    not k.endswith(recline_state['currentView']):
+                        not k.endswith(recline_state['currentView']):
                 recline_state.pop(k)
         return recline_state
 

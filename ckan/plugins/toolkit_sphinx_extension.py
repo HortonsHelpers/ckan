@@ -67,7 +67,7 @@ def format_function(name, function, docstring=None):
         docstring = ''
     else:
         # Indent the docstring by 3 spaces, as needed for the Sphinx directive.
-        docstring = '\n'.join(['   ' + line for line in docstring.split('\n')])
+        docstring = '\n'.join([f'   {line}' for line in docstring.split('\n')])
 
     return template.format(function=name, args=argstring, docstring=docstring)
 
@@ -103,7 +103,7 @@ def format_class(name, class_, docstring=None):
         docstring = ''
     else:
         # Indent the docstring by 3 spaces, as needed for the Sphinx directive.
-        docstring = '\n'.join(['   ' + line for line in docstring.split('\n')])
+        docstring = '\n'.join([f'   {line}' for line in docstring.split('\n')])
 
     return template.format(cls=name, docstring=docstring)
 
@@ -139,7 +139,7 @@ def format_object(name, object_, docstring=None):
         docstring = ''
     else:
         # Indent the docstring by 3 spaces, as needed for the Sphinx directive.
-        docstring = '\n'.join(['   ' + line for line in docstring.split('\n')])
+        docstring = '\n'.join([f'   {line}' for line in docstring.split('\n')])
 
     return template.format(obj=name, docstring=docstring)
 

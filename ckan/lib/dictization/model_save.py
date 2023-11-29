@@ -20,10 +20,10 @@ def resource_dict_save(res_dict, context):
     model = context["model"]
     session = context["session"]
 
-    id = res_dict.get("id")
-    obj = None
-    if id:
+    if id := res_dict.get("id"):
         obj = session.query(model.Resource).get(id)
+    else:
+        obj = None
     if not obj:
         new = True
         obj = model.Resource()
@@ -78,7 +78,7 @@ def package_resource_list_save(res_dicts, package, context):
 
     obj_list = []
     for res_dict in res_dicts or []:
-        if not u'package_id' in res_dict or not res_dict[u'package_id']:
+        if u'package_id' not in res_dict or not res_dict[u'package_id']:
             res_dict[u'package_id'] = package.id
         obj = resource_dict_save(res_dict, context)
         obj_list.append(obj)
@@ -109,16 +109,14 @@ def package_extras_save(extra_dicts, obj, context):
     session = context["session"]
 
     extras_list = obj.extras_list
-    old_extras = dict((extra.key, extra) for extra in extras_list)
+    old_extras = {extra.key: extra for extra in extras_list}
 
     new_extras = {}
     for extra_dict in extra_dicts or []:
         if extra_dict.get("deleted"):
             continue
 
-        if extra_dict['value'] is None:
-            pass
-        else:
+        if extra_dict['value'] is not None:
             new_extras[extra_dict["key"]] = extra_dict["value"]
     #new
     for key in set(new_extras.keys()) - set(old_extras.keys()):
@@ -151,9 +149,9 @@ def package_tag_list_save(tag_dicts, package, context):
     model = context["model"]
     session = context["session"]
 
-    tag_package_tag = dict((package_tag.tag, package_tag)
-                            for package_tag in
-                            package.package_tag_all)
+    tag_package_tag = {
+        package_tag.tag: package_tag for package_tag in package.package_tag_all
+    }
 
     tag_package_tag_inactive = {tag: pt for tag,pt in tag_package_tag.items() if
             pt.state in ['deleted']}
@@ -202,9 +200,7 @@ def package_membership_list_save(group_dicts, package, context):
             .filter(model.Member.table_id == package.id) \
             .filter(model.Member.capacity != 'organization')
 
-    group_member = dict((member.group, member)
-                         for member in
-                         members)
+    group_member = {member.group: member for member in members}
     groups = set()
     for group_dict in group_dicts or []:
         id = group_dict.get("id")
@@ -350,7 +346,9 @@ def group_member_save(context, group_dict, member_table_name):
         'removed': []
     }
 
-    entity_member = dict(((member.table_id, member.capacity), member) for member in members)
+    entity_member = {
+        (member.table_id, member.capacity): member for member in members
+    }
     for entity_id in set(entity_member.keys()) - set(entities.keys()):
         if entity_member[entity_id].state != 'deleted':
             processed['removed'].append(entity_id[0])
@@ -471,12 +469,10 @@ def package_api_to_dict(api1_dict, context):
                 updated_extras.update(package.extras)
             updated_extras.update(value)
 
-            new_value = []
-
-            for extras_key, extras_value in updated_extras.iteritems():
-                new_value.append({"key": extras_key,
-                                  "value": extras_value})
-
+            new_value = [
+                {"key": extras_key, "value": extras_value}
+                for extras_key, extras_value in updated_extras.iteritems()
+            ]
         if key == 'groups' and len(value):
             if api_version == 1:
                 new_value = [{'name': item} for item in value]
@@ -526,10 +522,7 @@ def activity_dict_save(activity_dict, context):
     object_id = activity_dict['object_id']
     revision_id = activity_dict['revision_id']
     activity_type = activity_dict['activity_type']
-    if activity_dict.has_key('data'):
-        data = activity_dict['data']
-    else:
-        data = None
+    data = activity_dict['data'] if activity_dict.has_key('data') else None
     activity_obj = model.Activity(user_id, object_id, revision_id,
             activity_type, data)
     session.add(activity_obj)
@@ -605,13 +598,13 @@ def follower_dict_save(data_dict, context, FollowerClass):
 
 def resource_view_dict_save(data_dict, context):
     model = context['model']
-    resource_view = context.get('resource_view')
-    if resource_view:
+    if resource_view := context.get('resource_view'):
         data_dict['id'] = resource_view.id
-    config = {}
-    for key, value in data_dict.iteritems():
-        if key not in model.ResourceView.get_columns():
-            config[key]  = value
+    config = {
+        key: value
+        for key, value in data_dict.iteritems()
+        if key not in model.ResourceView.get_columns()
+    }
     data_dict['config'] = config
 
 

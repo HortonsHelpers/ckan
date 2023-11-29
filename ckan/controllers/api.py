@@ -51,8 +51,7 @@ class ApiController(base.BaseController):
         # we need to intercept and fix the api version
         # as it will have a "/" at the start
         routes_dict = environ['pylons.routes_dict']
-        api_version = routes_dict.get('ver')
-        if api_version:
+        if api_version := routes_dict.get('ver'):
             api_version = api_version[1:]
             routes_dict['ver'] = int(api_version)
 
@@ -126,36 +125,34 @@ class ApiController(base.BaseController):
     def _finish_not_authz(self, extra_msg=None):
         response_data = _('Access denied')
         if extra_msg:
-            response_data = '%s - %s' % (response_data, extra_msg)
+            response_data = f'{response_data} - {extra_msg}'
         return self._finish(403, response_data, 'json')
 
     def _finish_not_found(self, extra_msg=None):
         response_data = _('Not found')
         if extra_msg:
-            response_data = '%s - %s' % (response_data, extra_msg)
+            response_data = f'{response_data} - {extra_msg}'
         return self._finish(404, response_data, 'json')
 
     def _finish_bad_request(self, extra_msg=None):
         response_data = _('Bad request')
         if extra_msg:
-            response_data = '%s - %s' % (response_data, extra_msg)
+            response_data = f'{response_data} - {extra_msg}'
         return self._finish(400, response_data, 'json')
 
     def _wrap_jsonp(self, callback, response_msg):
-        return '%s(%s);' % (callback, response_msg)
+        return f'{callback}({response_msg});'
 
     def _set_response_header(self, name, value):
         try:
             value = str(value)
         except Exception as inst:
-            msg = "Couldn't convert '%s' header value '%s' to string: %s" % \
-                (name, value, inst)
+            msg = f"Couldn't convert '{name}' header value '{value}' to string: {inst}"
             raise Exception(msg)
         response.headers[name] = value
 
     def get_api(self, ver=None):
-        response_data = {}
-        response_data['version'] = ver
+        response_data = {'version': ver}
         return self._finish_ok(response_data)
 
     def action(self, logic_function, ver=None):
@@ -219,14 +216,14 @@ class ApiController(base.BaseController):
             return_dict['success'] = False
 
             if text_type(e):
-                return_dict['error']['message'] += u': %s' % e
+                return_dict['error']['message'] += f': {e}'
 
             return self._finish(403, return_dict, content_type='json')
         except NotFound as e:
             return_dict['error'] = {'__type': 'Not Found Error',
                                     'message': _('Not found')}
             if text_type(e):
-                return_dict['error']['message'] += u': %s' % e
+                return_dict['error']['message'] += f': {e}'
             return_dict['success'] = False
             return self._finish(404, return_dict, content_type='json')
         except ValidationError as e:
@@ -251,8 +248,8 @@ class ApiController(base.BaseController):
         except search.SearchIndexError as e:
             return_dict['error'] = {
                 '__type': 'Search Index Error',
-                'message': 'Unable to add package to search index: %s' %
-                           str(e)}
+                'message': f'Unable to add package to search index: {str(e)}',
+            }
             return_dict['success'] = False
             return self._finish(500, return_dict, content_type='json')
         return self._finish_ok(return_dict)
@@ -291,15 +288,15 @@ class ApiController(base.BaseController):
                 try:
                     since_time = h.date_str_to_datetime(since_time_str)
                 except ValueError as inst:
-                    return self._finish_bad_request('ValueError: %s' % inst)
+                    return self._finish_bad_request(f'ValueError: {inst}')
             else:
                 return self._finish_bad_request(
                     _("Missing search term ('since_id=UUID' or " +
                       " 'since_time=TIMESTAMP')"))
             revs = model.Session.query(model.Revision) \
-                .filter(model.Revision.timestamp > since_time) \
-                .order_by(model.Revision.timestamp) \
-                .limit(50)  # reasonable enough for a page
+                    .filter(model.Revision.timestamp > since_time) \
+                    .order_by(model.Revision.timestamp) \
+                    .limit(50)  # reasonable enough for a page
             return self._finish_ok([rev.id for rev in revs])
         elif register in ['dataset', 'package', 'resource']:
             try:
@@ -330,7 +327,7 @@ class ApiController(base.BaseController):
                     for field, value in params.items():
                         field = field.strip()
                         if field in search.DEFAULT_OPTIONS.keys() or \
-                                field in IGNORE_FIELDS:
+                                    field in IGNORE_FIELDS:
                             continue
                         values = [value]
                         if isinstance(value, list):
@@ -350,7 +347,7 @@ class ApiController(base.BaseController):
                         # Otherwise, put all unrecognised ones into the q
                         # parameter
                         params = search.\
-                            convert_legacy_parameters_to_solr(params)
+                                convert_legacy_parameters_to_solr(params)
                     query = search.query_for(model.Package)
 
                     # Remove any existing fq param and set the capacity to
@@ -515,13 +512,11 @@ class ApiController(base.BaseController):
     def i18n_js_translations(self, lang):
         ''' translation strings for front end '''
         ckan_path = os.path.join(os.path.dirname(__file__), '..')
-        source = os.path.abspath(os.path.join(ckan_path, 'public',
-                                 'base', 'i18n', '%s.js' % lang))
+        source = os.path.abspath(
+            os.path.join(ckan_path, 'public', 'base', 'i18n', f'{lang}.js')
+        )
         response.headers['Content-Type'] = CONTENT_TYPES['json']
-        if not os.path.exists(source):
-            return '{}'
-        f = open(source, 'r')
-        return(f)
+        return '{}' if not os.path.exists(source) else open(source, 'r')
 
     @classmethod
     def _get_request_data(cls, try_url_params=False):
@@ -580,7 +575,7 @@ class ApiController(base.BaseController):
                     request_data = urllib.unquote_plus(request.body)
             except Exception as inst:
                 msg = "Could not find the POST data: %r : %s" % \
-                      (request.POST, inst)
+                          (request.POST, inst)
                 raise ValueError(msg)
 
         elif try_url_params and request.GET:
@@ -588,19 +583,15 @@ class ApiController(base.BaseController):
 
         else:
             try:
-                if request.method in ['POST', 'PUT']:
-                    request_data = request.body
-                else:
-                    request_data = None
+                request_data = request.body if request.method in ['POST', 'PUT'] else None
             except Exception as inst:
-                msg = "Could not extract request body data: %s" % \
-                      (inst)
+                msg = f"Could not extract request body data: {inst}"
                 raise ValueError(msg)
             cls.log.debug('Retrieved request body: %r', request.body)
             if not request_data:
                 if not try_url_params:
                     msg = "Invalid request. Please use POST method" \
-                        " for your request"
+                            " for your request"
                     raise ValueError(msg)
                 else:
                     request_data = {}

@@ -153,12 +153,12 @@ def resource_show(context, data_dict):
         raise logic.NotFound(_('No package found for this resource, cannot check auth.'))
 
     pkg_dict = {'id': pkg.id}
-    authorized = authz.is_authorized('package_show', context, pkg_dict).get('success')
-
-    if not authorized:
-        return {'success': False, 'msg': _('User %s not authorized to read resource %s') % (user, resource.id)}
-    else:
+    if authorized := authz.is_authorized(
+        'package_show', context, pkg_dict
+    ).get('success'):
         return {'success': True}
+    else:
+        return {'success': False, 'msg': _('User %s not authorized to read resource %s') % (user, resource.id)}
 
 
 def resource_view_show(context, data_dict):
@@ -189,14 +189,14 @@ def revision_show(context, data_dict):
 def group_show(context, data_dict):
     user = context.get('user')
     group = get_group_object(context, data_dict)
-    if group.state == 'active':
-        if asbool(config.get('ckan.auth.public_user_details', True)) or \
+    if asbool(config.get('ckan.auth.public_user_details', True)) or \
             (not asbool(data_dict.get('include_users', False)) and
                 (data_dict.get('object_type', None) != 'user')):
+        if group.state == 'active':
             return {'success': True}
-    authorized = authz.has_user_permission_for_group_or_org(
-        group.id, user, 'read')
-    if authorized:
+    if authorized := authz.has_user_permission_for_group_or_org(
+        group.id, user, 'read'
+    ):
         return {'success': True}
     else:
         return {'success': False, 'msg': _('User %s not authorized to read group %s') % (user, group.id)}

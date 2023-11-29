@@ -20,7 +20,7 @@ class System(domain_object.DomainObject):
     name = 'system'
 
     def __unicode__(self):
-        return u'<%s>' % self.__class__.__name__
+        return f'<{self.__class__.__name__}>'
 
     def purge(self):
         pass

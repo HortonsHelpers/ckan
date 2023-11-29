@@ -91,8 +91,7 @@ class LicenseRegister(object):
     """Dictionary-like interface to a group of licenses."""
 
     def __init__(self):
-        group_url = config.get('licenses_group_url', None)
-        if group_url:
+        if group_url := config.get('licenses_group_url', None):
             self.load_licenses(group_url)
         else:
             default_license_list = [
@@ -139,7 +138,7 @@ class LicenseRegister(object):
         elif isinstance(license_data, list):
             self.licenses = [License(entity) for entity in license_data]
         else:
-            msg = "Licenses at %s must be dictionary or list" % license_url
+            msg = f"Licenses at {license_url} must be dictionary or list"
             raise ValueError(msg)
 
     def __getitem__(self, key, default=Exception):
@@ -149,7 +148,7 @@ class LicenseRegister(object):
         if default != Exception:
             return default
         else:
-            raise KeyError("License not found: %s" % key)
+            raise KeyError(f"License not found: {key}")
 
     def get(self, key, default=None):
         return self.__getitem__(key, default=default)
@@ -203,21 +202,14 @@ class DefaultLicense(dict):
 
     def __getitem__(self, key):
         ''' behave like a dict but get from attributes '''
-        if key in self.keys:
-            value = getattr(self, key)
-            if isinstance(value, str):
-                return text_type(value)
-            else:
-                return value
-        else:
+        if key not in self.keys:
             raise KeyError()
+        value = getattr(self, key)
+        return text_type(value) if isinstance(value, str) else value
 
     def copy(self):
         ''' create a dict of the license used by the licenses api '''
-        out = {}
-        for key in self.keys:
-            out[key] = text_type(getattr(self, key))
-        return out
+        return {key: text_type(getattr(self, key)) for key in self.keys}
 
 class LicenseNotSpecified(DefaultLicense):
     id = "notspecified"

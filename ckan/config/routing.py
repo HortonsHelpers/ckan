@@ -47,16 +47,13 @@ class Mapper(_Mapper):
         highlight_actions = kw.pop('highlight_actions', kw.get('action', ''))
         ckan_core = kw.pop('ckan_core', None)
         out = _Mapper.connect(self, *args, **kw)
-        route = self.matchlist[-1]
         if ckan_core is not None:
+            route = self.matchlist[-1]
             route._ckan_core = ckan_core
         if len(args) == 1 or args[0].startswith('_redirect_'):
             return out
-        # we have a named route
-        needed = []
         matches = re.findall('\{([^:}]*)(\}|:)', args[1])
-        for match in matches:
-            needed.append(match[0])
+        needed = [match[0] for match in matches]
         route_data = {
             'icon': ckan_icon,
             # needed lists the names of the parameters that need defining
@@ -245,9 +242,7 @@ def make_map():
               'admins',
               'activity',
           ]:
-            m.connect('group_' + action,
-                      '/group/' + action + '/{id}',
-                      action=action)
+            m.connect(f'group_{action}', f'/group/{action}' + '/{id}', action=action)
 
         m.connect('group_about', '/group/about/{id}', action='about',
                   ckan_icon='info-circle'),
@@ -271,9 +266,11 @@ def make_map():
           'member_new',
           'member_delete',
           'history']:
-            m.connect('organization_' + action,
-                      '/organization/' + action + '/{id}',
-                      action=action)
+            m.connect(
+                f'organization_{action}',
+                f'/organization/{action}' + '/{id}',
+                action=action,
+            )
 
         m.connect('organization_activity', '/organization/activity/{id}/{offset}',
                   action='activity', ckan_icon='clock-o')

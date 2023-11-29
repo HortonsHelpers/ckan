@@ -69,14 +69,14 @@ def resource_create(context, data_dict):
         )
 
     pkg_dict = {'id': pkg.id}
-    authorized = authz.is_authorized('package_update', context, pkg_dict).get('success')
-
-    if not authorized:
+    if authorized := authz.is_authorized(
+        'package_update', context, pkg_dict
+    ).get('success'):
+        return {'success': True}
+    else:
         return {'success': False,
                 'msg': _('User %s not authorized to create resources on dataset %s') %
                         (str(user), package_id)}
-    else:
-        return {'success': True}
 
 
 def resource_view_create(context, data_dict):
@@ -194,11 +194,12 @@ def _check_group_auth(context, data_dict):
 
         groups = groups - set(pkg_groups)
 
-    for group in groups:
-        if not authz.has_user_permission_for_group_or_org(group.id, user, 'manage_group'):
-            return False
-
-    return True
+    return all(
+        authz.has_user_permission_for_group_or_org(
+            group.id, user, 'manage_group'
+        )
+        for group in groups
+    )
 
 
 def vocabulary_create(context, data_dict):
@@ -236,12 +237,11 @@ def member_create(context, data_dict):
     if not group.is_organization and data_dict.get('object_type') == 'package':
         permission = 'manage_group'
 
-    authorized = authz.has_user_permission_for_group_or_org(group.id,
-                                                                user,
-                                                                permission)
-    if not authorized:
+    if authorized := authz.has_user_permission_for_group_or_org(
+        group.id, user, permission
+    ):
+        return {'success': True}
+    else:
         return {'success': False,
                 'msg': _('User %s not authorized to edit group %s') %
                         (str(user), group.id)}
-    else:
-        return {'success': True}

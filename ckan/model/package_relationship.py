@@ -61,8 +61,7 @@ class PackageRelationship(vdm.sqlalchemy.RevisionedObjectMixin,
             {'sibling':_('has sibling %s')}
 
     def __str__(self):
-        return '<%sPackageRelationship %s %s %s>' % ("*" if self.active != core.State.ACTIVE else "",
-                                                     self.subject.name, self.type, self.object.name)
+        return f'<{"*" if self.active != core.State.ACTIVE else ""}PackageRelationship {self.subject.name} {self.type} {self.object.name}>'
 
     def __repr__(self):
         return str(self)
@@ -102,8 +101,7 @@ class PackageRelationship(vdm.sqlalchemy.RevisionedObjectMixin,
             other_package = self.subject
         else:
             # FIXME do we want a more specific error
-            raise Exception('Package %s is not in this relationship: %s' % \
-                             (package, self))
+            raise Exception(f'Package {package} is not in this relationship: {self}')
         return (type_str, other_package)
 
     @classmethod

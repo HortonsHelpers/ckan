@@ -60,12 +60,7 @@ def _get_action_user_name(kwargs):
     else:
         user = helpers.call_action('get_site_user')
 
-    if user is None:
-        user_name = None
-    else:
-        user_name = user['name']
-
-    return user_name
+    return None if user is None else user['name']
 
 
 def _generate_email(user):
@@ -131,8 +126,7 @@ class User(factory.Factory):
     def _create(cls, target_class, *args, **kwargs):
         if args:
             assert False, "Positional args aren't supported, use keyword args."
-        user_dict = helpers.call_action('user_create', **kwargs)
-        return user_dict
+        return helpers.call_action('user_create', **kwargs)
 
 
 class Resource(factory.Factory):
@@ -157,9 +151,7 @@ class Resource(factory.Factory):
 
         context = {'user': _get_action_user_name(kwargs)}
 
-        resource_dict = helpers.call_action('resource_create', context=context,
-                                            **kwargs)
-        return resource_dict
+        return helpers.call_action('resource_create', context=context, **kwargs)
 
 
 class ResourceView(factory.Factory):
@@ -200,9 +192,9 @@ class ResourceView(factory.Factory):
 
         context = {'user': _get_action_user_name(kwargs)}
 
-        resource_dict = helpers.call_action('resource_view_create',
-                                            context=context, **kwargs)
-        return resource_dict
+        return helpers.call_action(
+            'resource_view_create', context=context, **kwargs
+        )
 
 
 class Sysadmin(factory.Factory):
@@ -233,13 +225,9 @@ class Sysadmin(factory.Factory):
         ckan.model.Session.commit()
         ckan.model.Session.remove()
 
-        # We want to return a user dict not a model object, so call user_show
-        # to get one. We pass the user's name in the context because we want
-        # the API key and other sensitive data to be returned in the user
-        # dict.
-        user_dict = helpers.call_action('user_show', id=user.id,
-                                        context={'user': user.name})
-        return user_dict
+        return helpers.call_action(
+            'user_show', id=user.id, context={'user': user.name}
+        )
 
 
 class Group(factory.Factory):
@@ -265,10 +253,7 @@ class Group(factory.Factory):
 
         context = {'user': _get_action_user_name(kwargs)}
 
-        group_dict = helpers.call_action('group_create',
-                                         context=context,
-                                         **kwargs)
-        return group_dict
+        return helpers.call_action('group_create', context=context, **kwargs)
 
 
 class Organization(factory.Factory):
@@ -302,10 +287,9 @@ class Organization(factory.Factory):
 
         kwargs.setdefault('type', 'organization')
 
-        group_dict = helpers.call_action('organization_create',
-                                         context=context,
-                                         **kwargs)
-        return group_dict
+        return helpers.call_action(
+            'organization_create', context=context, **kwargs
+        )
 
 
 class Dataset(factory.Factory):
@@ -331,10 +315,7 @@ class Dataset(factory.Factory):
 
         context = {'user': _get_action_user_name(kwargs)}
 
-        dataset_dict = helpers.call_action('package_create',
-                                           context=context,
-                                           **kwargs)
-        return dataset_dict
+        return helpers.call_action('package_create', context=context, **kwargs)
 
 
 class MockUser(factory.Factory):
@@ -384,10 +365,11 @@ class SystemInfo(factory.Factory):
 
         ckan.model.system_info.set_system_info(kwargs['key'],
                                                kwargs['value'])
-        obj = ckan.model.Session.query(ckan.model.system_info.SystemInfo) \
-                                .filter_by(key=kwargs['key']).first()
-
-        return obj
+        return (
+            ckan.model.Session.query(ckan.model.system_info.SystemInfo)
+            .filter_by(key=kwargs['key'])
+            .first()
+        )
 
 
 def validator_data_dict():

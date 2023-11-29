@@ -149,7 +149,7 @@ def load(*plugins):
     observers = PluginImplementations(interfaces.IPluginObserver)
     for plugin in plugins:
         if plugin in _PLUGINS:
-            raise Exception('Plugin `%s` already loaded' % plugin)
+            raise Exception(f'Plugin `{plugin}` already loaded')
 
         service = _get_service(plugin)
         for observer_plugin in observers:
@@ -170,9 +170,7 @@ def load(*plugins):
     # Return extension instance if only one was loaded.  If more that one
     # has been requested then a list of instances is returned in the order
     # they were asked for.
-    if len(output) == 1:
-        return output[0]
-    return output
+    return output[0] if len(output) == 1 else output
 
 
 def unload_all():
@@ -191,13 +189,12 @@ def unload(*plugins):
     observers = PluginImplementations(interfaces.IPluginObserver)
 
     for plugin in plugins:
-        if plugin in _PLUGINS:
-            _PLUGINS.remove(plugin)
-            if plugin in _PLUGINS_SERVICE:
-                del _PLUGINS_SERVICE[plugin]
-        else:
-            raise Exception('Cannot unload plugin `%s`' % plugin)
+        if plugin not in _PLUGINS:
+            raise Exception(f'Cannot unload plugin `{plugin}`')
 
+        _PLUGINS.remove(plugin)
+        if plugin in _PLUGINS_SERVICE:
+            del _PLUGINS_SERVICE[plugin]
         service = _get_service(plugin)
         for observer_plugin in observers:
             observer_plugin.before_unload(service)
@@ -215,9 +212,7 @@ def plugin_loaded(name):
     '''
     See if a particular plugin is loaded.
     '''
-    if name in _PLUGINS:
-        return True
-    return False
+    return name in _PLUGINS
 
 
 def find_system_plugins():
@@ -245,15 +240,13 @@ def _get_service(plugin_name):
     :return: the service object
     '''
 
-    if isinstance(plugin_name, string_types):
-        for group in GROUPS:
-            iterator = iter_entry_points(
-                group=group,
-                name=plugin_name
-            )
-            plugin = next(iterator, None)
-            if plugin:
-                return plugin.load()(name=plugin_name)
-        raise PluginNotFoundException(plugin_name)
-    else:
+    if not isinstance(plugin_name, string_types):
         raise TypeError('Expected a plugin name', plugin_name)
+    for group in GROUPS:
+        iterator = iter_entry_points(
+            group=group,
+            name=plugin_name
+        )
+        if plugin := next(iterator, None):
+            return plugin.load()(name=plugin_name)
+    raise PluginNotFoundException(plugin_name)

@@ -16,10 +16,10 @@ class HtmlCheckMethods(object):
     def named_div(self, div_name, html):
         'strips html to just the <div id="DIV_NAME"> section'
         the_html = self._get_html_from_res(html)
-        start_div = the_html.find(u'<div id="%s"' % div_name)
-        end_div = the_html.find(u'<!-- #%s -->' % div_name)
+        start_div = the_html.find(f'<div id="{div_name}"')
+        end_div = the_html.find(f'<!-- #{div_name} -->')
         if end_div == -1:
-            end_div = the_html.find(u'<!-- /%s -->' % div_name)
+            end_div = the_html.find(f'<!-- /{div_name} -->')
         div_html = the_html[start_div:end_div]
         assert div_html
         return div_html
@@ -84,7 +84,7 @@ class HtmlCheckMethods(object):
                 html_bit_to_find = text_type(html_bit_to_find)
                 find_inverse = html_bit_to_find.startswith('!')
                 if (find_inverse and html_bit_to_find[1:] in tag.group()) or \
-                   (not find_inverse and html_bit_to_find not in tag.group()):
+                       (not find_inverse and html_bit_to_find not in tag.group()):
                     found_all = False
                     if i>0:
                         partly_matching_tags.append(tag.group())
@@ -93,9 +93,17 @@ class HtmlCheckMethods(object):
                 return # found it
         # didn't find it
         if partly_matching_tags:
-            assert 0, "Couldn't find %s in html. Closest matches were:\n%s" % (', '.join(["'%s'" % html.encode('utf8') for html in html_to_find]), '\n'.join([tag.encode('utf8') for tag in partly_matching_tags]))
+            assert 0, "Couldn't find %s in html. Closest matches were:\n%s" % (
+                ', '.join([f"'{html.encode('utf8')}'" for html in html_to_find]),
+                '\n'.join([tag.encode('utf8') for tag in partly_matching_tags]),
+            )
         else:
-            assert 0, "Couldn't find %s in html. Tags matched were:\n%s" % (', '.join(["'%s'" % html.encode('utf8') for html in html_to_find]), '\n'.join([tag.group() for tag in regex_compiled.finditer(html_str)]))
+            assert 0, "Couldn't find %s in html. Tags matched were:\n%s" % (
+                ', '.join([f"'{html.encode('utf8')}'" for html in html_to_find]),
+                '\n'.join(
+                    [tag.group() for tag in regex_compiled.finditer(html_str)]
+                ),
+            )
 
 
 

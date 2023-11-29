@@ -15,37 +15,33 @@ from ckan.common import _, is_flask_request
 # etc.
 
 def get_snippet_actor(activity, detail):
-    return literal('''<span class="actor">%s</span>'''
-        % (h.linked_user(activity['user_id'], 0, 30))
-        )
+    return literal(
+        f'''<span class="actor">{h.linked_user(activity['user_id'], 0, 30)}</span>'''
+    )
 
 def get_snippet_user(activity, detail):
-    return literal('''<span>%s</span>'''
-        % (h.linked_user(activity['object_id'], 0, 20))
-        )
+    return literal(
+        f'''<span>{h.linked_user(activity['object_id'], 0, 20)}</span>'''
+    )
 
 def get_snippet_dataset(activity, detail):
     data = activity['data']
     pkg_dict = data.get('package') or data.get('dataset')
     link = h.dataset_link(pkg_dict) if pkg_dict else ''
-    return literal('''<span>%s</span>'''
-        % (link)
-        )
+    return literal(f'''<span>{link}</span>''')
 
 def get_snippet_tag(activity, detail):
     return h.tag_link(detail['data']['tag'])
 
 def get_snippet_group(activity, detail):
     link = h.group_link(activity['data']['group'])
-    return literal('''<span>%s</span>'''
-        % (link)
-        )
+    return literal(f'''<span>{link}</span>''')
 
 def get_snippet_organization(activity, detail):
     return h.organization_link(activity['data']['group'])
 
 def get_snippet_extra(activity, detail):
-    return '"%s"' % detail['data']['package_extra']['key']
+    return f""""{detail['data']['package_extra']['key']}\""""
 
 def get_snippet_resource(activity, detail):
     return h.resource_link(detail['data']['resource'],
@@ -206,8 +202,8 @@ def activity_list_to_html(context, activity_stream, extra_vars):
     '''
     activity_list = [] # These are the activity stream messages.
     for activity in activity_stream:
-        detail = None
         activity_type = activity['activity_type']
+        detail = None
         # Some activity types may have details.
         if activity_type in activity_stream_actions_with_detail:
             details = logic.get_action('activity_detail_list')(context=context,
@@ -221,14 +217,14 @@ def activity_list_to_html(context, activity_stream, extra_vars):
                 if object_type == 'PackageExtra':
                     object_type = 'package_extra'
 
-                new_activity_type = '%s %s' % (detail['activity_type'],
-                                            object_type.lower())
+                new_activity_type = f"{detail['activity_type']} {object_type.lower()}"
                 if new_activity_type in activity_stream_string_functions:
                     activity_type = new_activity_type
 
-        if not activity_type in activity_stream_string_functions:
-            raise NotImplementedError("No activity renderer for activity "
-                "type '%s'" % activity_type)
+        if activity_type not in activity_stream_string_functions:
+            raise NotImplementedError(
+                f"No activity renderer for activity type '{activity_type}'"
+            )
 
         if activity_type in activity_stream_string_icons:
             activity_icon = activity_stream_string_icons[activity_type]

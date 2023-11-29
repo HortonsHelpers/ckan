@@ -183,10 +183,9 @@ class Repository(vdm.sqlalchemy.Repository):
             # this creates the tables, which isn't required inbetween tests
             # that have simply called rebuild_db.
             self.create_db()
-        else:
-            if not self.tables_created_and_initialised:
-                self.upgrade_db()
-                self.tables_created_and_initialised = True
+        elif not self.tables_created_and_initialised:
+            self.upgrade_db()
+            self.tables_created_and_initialised = True
         log.info('Database initialised')
 
     def clean_db(self):
@@ -238,7 +237,7 @@ class Repository(vdm.sqlalchemy.Repository):
         for table in tables:
             if table.name == 'migrate_version':
                 continue
-            connection.execute('delete from "%s"' % table.name)
+            connection.execute(f'delete from "{table.name}"')
         self.session.commit()
         log.info('Database table data deleted')
 
@@ -257,9 +256,10 @@ class Repository(vdm.sqlalchemy.Repository):
 
         @param version: version to upgrade to (if None upgrade to latest)
         '''
-        assert meta.engine.name in ('postgres', 'postgresql'), \
-            'Database migration - only Postgresql engine supported (not %s).' \
-                % meta.engine.name
+        assert meta.engine.name in (
+            'postgres',
+            'postgresql',
+        ), f'Database migration - only Postgresql engine supported (not {meta.engine.name}).'
         import migrate.versioning.api as mig
         self.setup_migration_version_control()
         version_before = mig.db_version(self.metadata.bind, self.migrate_repository)
@@ -308,14 +308,14 @@ class Repository(vdm.sqlalchemy.Repository):
         for o in self.versioned_objects:
             revobj = o.__revision_class__
             items = self.session.query(revobj). \
-                    filter_by(revision=revision).all()
+                        filter_by(revision=revision).all()
             for item in items:
                 continuity = item.continuity
 
                 if continuity.revision == revision:  # must change continuity
                     trevobjs = self.session.query(revobj).join('revision'). \
-                            filter(revobj.continuity == continuity). \
-                            order_by(Revision.timestamp.desc()).all()
+                                filter(revobj.continuity == continuity). \
+                                order_by(Revision.timestamp.desc()).all()
                     if len(trevobjs) == 0:
                         raise Exception('Should have at least one revision.')
                     if len(trevobjs) == 1:
@@ -334,7 +334,7 @@ class Repository(vdm.sqlalchemy.Repository):
             for cont in to_purge:
                 self.session.delete(cont)
         if leave_record:
-            revision.message = u'PURGED: %s' % datetime.now()
+            revision.message = f'PURGED: {datetime.now()}'
         else:
             self.session.delete(revision)
         self.commit_and_remove()
@@ -362,9 +362,7 @@ def _get_packages(self):
 
 def _get_groups(self):
     changes = repo.list_changes(self)
-    groups = set()
-    for group_rev in changes.pop(Group):
-        groups.add(group_rev.continuity)
+    groups = {group_rev.continuity for group_rev in changes.pop(Group)}
     for non_group_rev_list in changes.values():
         for non_group_rev in non_group_rev_list:
             if hasattr(non_group_rev.continuity, 'group'):
@@ -375,8 +373,7 @@ def _get_groups(self):
 # could set this up directly on the mapper?
 def _get_revision_user(self):
     username = text_type(self.author)
-    user = meta.Session.query(User).filter_by(name=username).first()
-    return user
+    return meta.Session.query(User).filter_by(name=username).first()
 
 Revision.packages = property(_get_packages)
 Revision.groups = property(_get_groups)

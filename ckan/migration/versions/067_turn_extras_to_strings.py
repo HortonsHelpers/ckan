@@ -21,9 +21,9 @@ def upgrade(migrate_engine):
             sql = """select id, revision_id, value from {table} where substr(value,1,1) = '"' """.format(table=table)
 
             results = connection.execute(sql)
+            update_sql = 'update {table} set value = %s where id = %s and revision_id = %s'
             for result in results:
                 id, revision_id, value = result
-                update_sql = 'update {table} set value = %s where id = %s and revision_id = %s'
                 connection.execute(update_sql.format(table=table),
                                    json.loads(value), id, revision_id)
 

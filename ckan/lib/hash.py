@@ -21,9 +21,7 @@ def get_redirect():
     it returns None.'''
     return_to = request.params.get('return_to')
     hash_given = request.params.get('hash', '')
-    if not (return_to and hash_given):
+    if not return_to or not hash_given:
         return None
     hash_expected = get_message_hash(return_to)
-    if hash_given == hash_expected:
-        return return_to.encode('utf-8')
-    return None
+    return return_to.encode('utf-8') if hash_given == hash_expected else None

@@ -58,9 +58,8 @@ class CheckPoFiles(paste.script.command.Command):
     def command(self):
 
         for path in self.args:
-            print(u'Checking file {}'.format(path))
-            errors = check_po_file(path)
-            if errors:
+            print(f'Checking file {path}')
+            if errors := check_po_file(path):
                 for msgid, msgstr in errors:
                     print("Format specifiers don't match:")
                     print(u'    {0} -> {1}'.format(
@@ -71,7 +70,7 @@ def check_po_file(path):
     errors = []
 
     def check_translation(validator, msgid, msgstr):
-        if not validator(msgid) == validator(msgstr):
+        if validator(msgid) != validator(msgstr):
             errors.append((msgid, msgstr))
 
     po = polib.pofile(path)

@@ -37,7 +37,7 @@ def template_info(template_name):
 
     template_path = find_template(template_name)
     if not template_path:
-        raise TemplateNotFound('Template %s cannot be found' % template_name)
+        raise TemplateNotFound(f'Template {template_name} cannot be found')
     t_type = template_type(template_path)
 
     # if in debug mode we always want to search for templates so we

@@ -154,11 +154,7 @@ def package_create(context, data_dict):
     _check_access('package_create', context, data_dict)
 
     if 'api_version' not in context:
-        # check_data_dict() is deprecated. If the package_plugin has a
-        # check_data_dict() we'll call it, if it doesn't have the method we'll
-        # do nothing.
-        check_data_dict = getattr(package_plugin, 'check_data_dict', None)
-        if check_data_dict:
+        if check_data_dict := getattr(package_plugin, 'check_data_dict', None):
             try:
                 check_data_dict(data_dict, schema)
             except TypeError:
@@ -184,8 +180,7 @@ def package_create(context, data_dict):
         rev.message = _(u'REST API: Create object %s') % data.get("name")
 
     if user:
-        user_obj = model.User.by_name(user.decode('utf8'))
-        if user_obj:
+        if user_obj := model.User.by_name(user.decode('utf8')):
             data['creator_user_id'] = user_obj.id
 
     pkg = model_save.package_dict_save(data, context)
@@ -228,14 +223,15 @@ def package_create(context, data_dict):
     context["package"] = pkg
     # this is added so that the rest controller can make a new location
     context["id"] = pkg.id
-    log.debug('Created object %s' % pkg.name)
+    log.debug(f'Created object {pkg.name}')
 
     return_id_only = context.get('return_id_only', False)
 
-    output = context['id'] if return_id_only \
+    return (
+        context['id']
+        if return_id_only
         else _get_action('package_show')(context, {'id': context['id']})
-
-    return output
+    )
 
 
 def resource_create(context, data_dict):
@@ -398,9 +394,7 @@ def resource_view_create(context, data_dict):
         func.max(model.ResourceView.order)
         ).filter_by(resource_id=resource_id).first()
 
-    order = 0
-    if max_order[0] is not None:
-        order = max_order[0] + 1
+    order = max_order[0] + 1 if max_order[0] is not None else 0
     data['order'] = order
 
     resource_view = model_save.resource_view_dict_save(data, context)
@@ -537,9 +531,7 @@ def package_relationship_create(context, data_dict):
 
     _check_access('package_relationship_create', context, data_dict)
 
-    # Create a Package Relationship.
-    existing_rels = pkg1.get_relationships_with(pkg2, rel_type)
-    if existing_rels:
+    if existing_rels := pkg1.get_relationships_with(pkg2, rel_type):
         return _update_package_relationship(existing_rels[0],
                                             comment, context)
     rev = model.repo.new_revision()
@@ -551,8 +543,7 @@ def package_relationship_create(context, data_dict):
         model.repo.commit_and_remove()
     context['relationship'] = rel
 
-    relationship_dicts = rel.as_dict(ref_package_by=ref_package_by)
-    return relationship_dicts
+    return rel.as_dict(ref_package_by=ref_package_by)
 
 
 def member_create(context, data_dict=None):
@@ -598,7 +589,7 @@ def member_create(context, data_dict=None):
     obj_class = ckan.logic.model_name_to_class(model, obj_type)
     obj = obj_class.get(obj_id)
     if not obj:
-        raise NotFound('%s was not found.' % obj_type.title())
+        raise NotFound(f'{obj_type.title()} was not found.')
 
     _check_access('member_create', context, data_dict)
 
@@ -680,20 +671,14 @@ def _group_or_org_create(context, data_dict, is_org=False):
     for item in plugins.PluginImplementations(plugin_type):
         item.create(group)
 
-    if is_org:
-        activity_type = 'new organization'
-    else:
-        activity_type = 'new group'
-
+    activity_type = 'new organization' if is_org else 'new group'
     user_id = model.User.by_name(user.decode('utf8')).id
 
     activity_dict = {
         'user_id': user_id,
         'object_id': group.id,
         'activity_type': activity_type,
-    }
-    activity_dict['data'] = {
-        'group': ckan.lib.dictization.table_dictize(group, context)
+        'data': {'group': ckan.lib.dictization.table_dictize(group, context)},
     }
     activity_create_context = {
         'model': model,
@@ -727,15 +712,16 @@ def _group_or_org_create(context, data_dict, is_org=False):
     }
     logic.get_action('member_create')(member_create_context, member_dict)
 
-    log.debug('Created object %s' % group.name)
+    log.debug(f'Created object {group.name}')
 
     return_id_only = context.get('return_id_only', False)
     action = 'organization_show' if is_org else 'group_show'
 
-    output = context['id'] if return_id_only \
+    return (
+        context['id']
+        if return_id_only
         else _get_action(action)(context, {'id': group.id})
-
-    return output
+    )
 
 
 def group_create(context, data_dict):
@@ -917,9 +903,10 @@ def rating_create(context, data_dict):
     model.repo.commit()
 
     package = model.Package.get(package_ref)
-    ret_dict = {'rating average': package.get_average_rating(),
-                'rating count': len(package.ratings)}
-    return ret_dict
+    return {
+        'rating average': package.get_average_rating(),
+        'rating count': len(package.ratings),
+    }
 
 
 def user_create(context, data_dict):
@@ -1090,7 +1077,7 @@ def _get_random_username_from_email(email):
     # then something else is probably wrong and we should give up
     max_name_creation_attempts = 100
 
-    for i in range(max_name_creation_attempts):
+    for _ in range(max_name_creation_attempts):
         random_number = random.SystemRandom().random() * 10000
         name = '%s-%d' % (cleaned_localpart, random_number)
         if not ckan.model.User.get(name):
@@ -1131,7 +1118,7 @@ def vocabulary_create(context, data_dict):
     if not context.get('defer_commit'):
         model.repo.commit()
 
-    log.debug('Created Vocabulary %s' % vocabulary.name)
+    log.debug(f'Created Vocabulary {vocabulary.name}')
 
     return model_dictize.vocabulary_dictize(vocabulary, context)
 
@@ -1192,7 +1179,7 @@ def activity_create(context, activity_dict, **kw):
     if not context.get('defer_commit'):
         model.repo.commit()
 
-    log.debug("Created '%s' activity" % activity.activity_type)
+    log.debug(f"Created '{activity.activity_type}' activity")
     return model_dictize.activity_dictize(activity, context)
 
 
@@ -1233,7 +1220,7 @@ def tag_create(context, data_dict):
     if not context.get('defer_commit'):
         model.repo.commit()
 
-    log.debug("Created tag '%s' " % tag)
+    log.debug(f"Created tag '{tag}' ")
     return model_dictize.tag_dictize(tag, context)
 
 
@@ -1372,8 +1359,7 @@ def _group_or_org_member_create(context, data_dict, is_org=False):
     if not group:
         msg = _('Organization not found') if is_org else _('Group not found')
         raise NotFound(msg)
-    result = model.User.get(username)
-    if result:
+    if result := model.User.get(username):
         user_id = result.id
     else:
         message = _(u'User {username} does not exist.').format(

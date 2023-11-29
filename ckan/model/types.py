@@ -53,10 +53,7 @@ class JsonType(types.TypeDecorator):
             return text_type(json.dumps(value, ensure_ascii=False))
 
     def process_result_value(self, value, engine):
-        if value is None:
-            return {}
-        else:
-            return json.loads(value)
+        return {} if value is None else json.loads(value)
 
     def copy(self):
         return JsonType(self.impl.length)
@@ -72,13 +69,12 @@ class JsonDictType(JsonType):
     impl = types.UnicodeText
 
     def process_bind_param(self, value, engine):
-        if value is None or value == {}: # ensure we stores nulls in db not json "null"
+        if value is None or value == {}:
             return None
+        if isinstance(value, string_types):
+            return text_type(value)
         else:
-            if isinstance(value, string_types):
-                return text_type(value)
-            else:
-                return text_type(json.dumps(value, ensure_ascii=False))
+            return text_type(json.dumps(value, ensure_ascii=False))
 
     def copy(self):
         return JsonDictType(self.impl.length)

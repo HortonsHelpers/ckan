@@ -22,10 +22,7 @@ class JsonType(types.TypeDecorator):
             return unicode(json.dumps(value, ensure_ascii=False))
 
     def process_result_value(self, value, engine):
-        if value is None:
-            return None
-        else:
-            return json.loads(value)
+        return None if value is None else json.loads(value)
 
     def copy(self):
         return JsonType(self.impl.length)

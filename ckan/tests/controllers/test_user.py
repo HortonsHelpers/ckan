@@ -197,10 +197,7 @@ class TestUser(helpers.FunctionalTestBase):
         app = self._get_test_app()
 
         for route in ['index', 'organizations', 'datasets', 'groups']:
-            app.get(
-                url=url_for(u'dashboard.{}'.format(route)),
-                status=403
-            )
+            app.get(url=url_for(f'dashboard.{route}'), status=403)
 
     def test_own_datasets_show_up_on_user_dashboard(self):
         user = factories.User()
@@ -745,8 +742,7 @@ class TestActivity(helpers.FunctionalTestBase):
         url = url_for('user.activity',
                       id=user['id'])
         response = app.get(url)
-        assert_in('<a href="/user/{}">Mr. Test User'.format(user['name']),
-                  response)
+        assert_in(f"""<a href="/user/{user['name']}">Mr. Test User""", response)
         assert_in('signed up', response)
 
     def _clear_activities(self):
@@ -765,8 +761,7 @@ class TestActivity(helpers.FunctionalTestBase):
         url = url_for('user.activity',
                       id=user['id'])
         response = app.get(url)
-        assert_in('<a href="/user/{}">Mr. Changed Name'.format(user['name']),
-                  response)
+        assert_in(f"""<a href="/user/{user['name']}">Mr. Changed Name""", response)
         assert_in('updated their profile', response)
 
     def test_create_dataset(self):
@@ -778,11 +773,9 @@ class TestActivity(helpers.FunctionalTestBase):
         url = url_for('user.activity',
                       id=user['id'])
         response = app.get(url)
-        assert_in('<a href="/user/{}">Mr. Test User'.format(user['name']),
-                  response)
+        assert_in(f"""<a href="/user/{user['name']}">Mr. Test User""", response)
         assert_in('created the dataset', response)
-        assert_in('<a href="/dataset/{}">Test Dataset'.format(dataset['name']),
-                  response)
+        assert_in(f"""<a href="/dataset/{dataset['name']}">Test Dataset""", response)
 
     def test_change_dataset(self):
         app = self._get_test_app()
@@ -796,12 +789,12 @@ class TestActivity(helpers.FunctionalTestBase):
         url = url_for('user.activity',
                       id=user['id'])
         response = app.get(url)
-        assert_in('<a href="/user/{}">Mr. Test User'.format(user['name']),
-                  response)
+        assert_in(f"""<a href="/user/{user['name']}">Mr. Test User""", response)
         assert_in('updated the dataset', response)
-        assert_in('<a href="/dataset/{}">Dataset with changed title'
-                  .format(dataset['name']),
-                  response)
+        assert_in(
+            f"""<a href="/dataset/{dataset['name']}">Dataset with changed title""",
+            response,
+        )
 
     def test_delete_dataset(self):
         app = self._get_test_app()
@@ -815,12 +808,9 @@ class TestActivity(helpers.FunctionalTestBase):
                       id=user['id'])
         env = {'REMOTE_USER': user['name'].encode('ascii')}
         response = app.get(url, extra_environ=env)
-        assert_in('<a href="/user/{}">Mr. Test User'.format(user['name']),
-                  response)
+        assert_in(f"""<a href="/user/{user['name']}">Mr. Test User""", response)
         assert_in('deleted the dataset', response)
-        assert_in('<a href="/dataset/{}">Test Dataset'
-                  .format(dataset['name']),
-                  response)
+        assert_in(f"""<a href="/dataset/{dataset['name']}">Test Dataset""", response)
 
     def test_create_group(self):
         app = self._get_test_app()
@@ -830,11 +820,9 @@ class TestActivity(helpers.FunctionalTestBase):
         url = url_for('user.activity',
                       id=user['id'])
         response = app.get(url)
-        assert_in('<a href="/user/{}">Mr. Test User'.format(user['name']),
-                  response)
+        assert_in(f"""<a href="/user/{user['name']}">Mr. Test User""", response)
         assert_in('created the group', response)
-        assert_in('<a href="/group/{}">Test Group'.format(
-                  group['name']), response)
+        assert_in(f"""<a href="/group/{group['name']}">Test Group""", response)
 
     def test_change_group(self):
         app = self._get_test_app()
@@ -848,11 +836,12 @@ class TestActivity(helpers.FunctionalTestBase):
         url = url_for('user.activity',
                       id=user['id'])
         response = app.get(url)
-        assert_in('<a href="/user/{}">Mr. Test User'.format(user['name']),
-                  response)
+        assert_in(f"""<a href="/user/{user['name']}">Mr. Test User""", response)
         assert_in('updated the group', response)
-        assert_in('<a href="/group/{}">Group with changed title'
-                  .format(group['name']), response)
+        assert_in(
+            f"""<a href="/group/{group['name']}">Group with changed title""",
+            response,
+        )
 
 
 class TestUserResetRequest(helpers.FunctionalTestBase):

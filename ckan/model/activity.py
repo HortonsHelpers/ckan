@@ -56,10 +56,7 @@ class Activity(domain_object.DomainObject):
         self.object_id = object_id
         self.revision_id = revision_id
         self.activity_type = activity_type
-        if data is None:
-            self.data = {}
-        else:
-            self.data = data
+        self.data = {} if data is None else data
 
 meta.mapper(Activity, activity_table)
 
@@ -72,10 +69,7 @@ class ActivityDetail(domain_object.DomainObject):
         self.object_id = object_id
         self.object_type = object_type
         self.activity_type = activity_type
-        if data is None:
-            self.data = {}
-        else:
-            self.data = data
+        self.data = {} if data is None else data
 
     @classmethod
     def by_activity_id(cls, activity_id):
@@ -309,30 +303,26 @@ def _activities_from_users_followed_by_user_query(user_id, limit):
     '''Return a query for all activities from users that user_id follows.'''
     import ckan.model as model
 
-    # Get a list of the users that the given user is following.
-    follower_objects = model.UserFollowingUser.followee_list(user_id)
-    if not follower_objects:
+    if follower_objects := model.UserFollowingUser.followee_list(user_id):
+        return _activities_union_all(*[
+            _user_activity_query(follower.object_id, limit)
+            for follower in follower_objects])
+    else:
         # Return a query with no results.
         return model.Session.query(model.Activity).filter(text('0=1'))
-
-    return _activities_union_all(*[
-        _user_activity_query(follower.object_id, limit)
-        for follower in follower_objects])
 
 
 def _activities_from_datasets_followed_by_user_query(user_id, limit):
     '''Return a query for all activities from datasets that user_id follows.'''
     import ckan.model as model
 
-    # Get a list of the datasets that the user is following.
-    follower_objects = model.UserFollowingDataset.followee_list(user_id)
-    if not follower_objects:
+    if follower_objects := model.UserFollowingDataset.followee_list(user_id):
+        return _activities_union_all(*[
+            _activities_limit(_package_activity_query(follower.object_id), limit)
+            for follower in follower_objects])
+    else:
         # Return a query with no results.
         return model.Session.query(model.Activity).filter(text('0=1'))
-
-    return _activities_union_all(*[
-        _activities_limit(_package_activity_query(follower.object_id), limit)
-        for follower in follower_objects])
 
 
 def _activities_from_groups_followed_by_user_query(user_id, limit):
@@ -345,15 +335,13 @@ def _activities_from_groups_followed_by_user_query(user_id, limit):
     '''
     import ckan.model as model
 
-    # Get a list of the group's that the user is following.
-    follower_objects = model.UserFollowingGroup.followee_list(user_id)
-    if not follower_objects:
+    if follower_objects := model.UserFollowingGroup.followee_list(user_id):
+        return _activities_union_all(*[
+            _activities_limit(_group_activity_query(follower.object_id), limit)
+            for follower in follower_objects])
+    else:
         # Return a query with no results.
         return model.Session.query(model.Activity).filter(text('0=1'))
-
-    return _activities_union_all(*[
-        _activities_limit(_group_activity_query(follower.object_id), limit)
-        for follower in follower_objects])
 
 
 def _activities_from_everything_followed_by_user_query(user_id, limit):
@@ -433,8 +421,7 @@ def _filter_activitites_from_users(q):
     Adds a filter to an existing query object ot avoid activities from users
     defined in :ref:`ckan.hide_activity_from_users` (defaults to the site user)
     '''
-    users_to_avoid = _activity_stream_get_filtered_users()
-    if users_to_avoid:
+    if users_to_avoid := _activity_stream_get_filtered_users():
         q = q.filter(ckan.model.Activity.user_id.notin_(users_to_avoid))
 
     return q
@@ -446,8 +433,7 @@ def _activity_stream_get_filtered_users():
     option and return a list of their ids. If the config is not specified,
     returns the id of the site user.
     '''
-    users = config.get('ckan.hide_activity_from_users')
-    if users:
+    if users := config.get('ckan.hide_activity_from_users'):
         users_list = users.split()
     else:
         from ckan.logic import get_action

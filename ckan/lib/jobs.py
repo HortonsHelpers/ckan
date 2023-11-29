@@ -58,7 +58,7 @@ def _get_queue_name_prefix():
     Get the queue name prefix.
     '''
     # This must be done at runtime since we need a loaded config
-    return u'ckan:{}:'.format(config[u'ckan.site_id'])
+    return f"ckan:{config['ckan.site_id']}:"
 
 
 def add_queue_name_prefix(name):
@@ -80,7 +80,7 @@ def remove_queue_name_prefix(name):
     '''
     prefix = _get_queue_name_prefix()
     if not name.startswith(prefix):
-        raise ValueError(u'Queue name "{}" is not prefixed.'.format(name))
+        raise ValueError(f'Queue name "{name}" is not prefixed.')
     return name[len(prefix):]
 
 
@@ -118,7 +118,7 @@ def get_queue(name=DEFAULT_QUEUE_NAME):
     try:
         return _queues[fullname]
     except KeyError:
-        log.debug(u'Initializing background job queue "{}"'.format(name))
+        log.debug(f'Initializing background job queue "{name}"')
         redis_conn = _connect()
         queue = _queues[fullname] = rq.Queue(fullname, connection=redis_conn)
         return queue
@@ -162,10 +162,10 @@ def enqueue(fn, args=None, kwargs=None, title=None, queue=DEFAULT_QUEUE_NAME,
         func=fn, args=args, kwargs=kwargs, **rq_kwargs)
     job.meta[u'title'] = title
     job.save()
-    msg = u'Added background job {}'.format(job.id)
+    msg = f'Added background job {job.id}'
     if title:
-        msg = u'{} ("{}")'.format(msg, title)
-    msg = u'{} to queue "{}"'.format(msg, queue)
+        msg = f'{msg} ("{title}")'
+    msg = f'{msg} to queue "{queue}"'
     log.info(msg)
     return job
 
@@ -184,7 +184,7 @@ def job_from_id(id):
     try:
         return Job.fetch(id, connection=_connect())
     except NoSuchJobError:
-        raise KeyError(u'There is no job with ID "{}".'.format(id))
+        raise KeyError(f'There is no job with ID "{id}".')
 
 
 def dictize_job(job):
@@ -248,9 +248,10 @@ class Worker(rq.Worker):
     def register_birth(self, *args, **kwargs):
         result = super(Worker, self).register_birth(*args, **kwargs)
         names = [remove_queue_name_prefix(n) for n in self.queue_names()]
-        names = u', '.join(u'"{}"'.format(n) for n in names)
-        log.info(u'Worker {} (PID {}) has started on queue(s) {} '.format(
-                 self.key, self.pid, names))
+        names = u', '.join(f'"{n}"' for n in names)
+        log.info(
+            f'Worker {self.key} (PID {self.pid}) has started on queue(s) {names} '
+        )
         return result
 
     def execute_job(self, job, *args, **kwargs):
@@ -269,24 +270,23 @@ class Worker(rq.Worker):
 
         # The original implementation performs the actual fork
         queue = remove_queue_name_prefix(job.origin)
-        log.info(u'Worker {} starts job {} from queue "{}"'.format(
-                 self.key, job.id, queue))
+        log.info(f'Worker {self.key} starts job {job.id} from queue "{queue}"')
         for plugin in plugins.PluginImplementations(plugins.IForkObserver):
             plugin.before_fork()
         result = super(Worker, self).execute_job(job, *args, **kwargs)
-        log.info(u'Worker {} has finished job {} from queue "{}"'.format(
-                 self.key, job.id, queue))
+        log.info(f'Worker {self.key} has finished job {job.id} from queue "{queue}"')
 
         return result
 
     def register_death(self, *args, **kwargs):
         result = super(Worker, self).register_death(*args, **kwargs)
-        log.info(u'Worker {} (PID {}) has stopped'.format(self.key, self.pid))
+        log.info(f'Worker {self.key} (PID {self.pid}) has stopped')
         return result
 
     def handle_exception(self, job, *exc_info):
-        log.exception(u'Job {} on worker {} raised an exception: {}'.format(
-                      job.id, self.key, exc_info[1]))
+        log.exception(
+            f'Job {job.id} on worker {self.key} raised an exception: {exc_info[1]}'
+        )
         return super(Worker, self).handle_exception(job, *exc_info)
 
     def main_work_horse(self, job, queue):

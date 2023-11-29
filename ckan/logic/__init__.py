@@ -210,11 +210,10 @@ def tuplize_dict(data_dict):
 
 def untuplize_dict(tuplized_dict):
 
-    data_dict = {}
-    for key, value in tuplized_dict.iteritems():
-        new_key = '__'.join([str(item) for item in key])
-        data_dict[new_key] = value
-    return data_dict
+    return {
+        '__'.join([str(item) for item in key]): value
+        for key, value in tuplized_dict.iteritems()
+    }
 
 
 def flatten_to_string_key(dict):
@@ -382,7 +381,7 @@ def get_action(action):
 
     if _actions:
         if action not in _actions:
-            raise KeyError("Action '%s' not found" % action)
+            raise KeyError(f"Action '{action}' not found")
         return _actions.get(action)
     # Otherwise look in all the plugins to resolve all possible
     # First get the default ones in the ckan/logic/action directory
@@ -390,7 +389,7 @@ def get_action(action):
     # to load anything from ckan.logic.action that looks like it might
     # be an action
     for action_module_name in ['get', 'create', 'update', 'delete', 'patch']:
-        module_path = 'ckan.logic.action.' + action_module_name
+        module_path = f'ckan.logic.action.{action_module_name}'
         module = __import__(module_path)
         for part in module_path.split('.')[1:]:
             module = getattr(module, part)
@@ -473,7 +472,7 @@ def get_action(action):
                     audit = context['__auth_audit'][-1]
                     if audit[0] == action_name and audit[1] == id(_action):
                         if action_name not in authz.auth_functions_list():
-                            log.debug('No auth function for %s' % action_name)
+                            log.debug(f'No auth function for {action_name}')
                         elif not getattr(_action, 'auth_audit_exempt', False):
                             raise Exception(
                                 'Action function {0} did not call its '
@@ -484,6 +483,7 @@ def get_action(action):
                 except IndexError:
                     pass
                 return result
+
             return wrapped
 
         # If we have been called multiple times for example during tests then
@@ -537,9 +537,7 @@ def get_or_bust(data_dict, keys):
 
     # preserve original key order
     values = [data_dict[key] for key in keys]
-    if len(values) == 1:
-        return values[0]
-    return tuple(values)
+    return values[0] if len(values) == 1 else tuple(values)
 
 
 def validate(schema_func, can_skip_validator=False):
@@ -691,7 +689,7 @@ def get_validator(validator):
     try:
         return _validators_cache[validator]
     except KeyError:
-        raise UnknownValidator('Validator `%s` does not exist' % validator)
+        raise UnknownValidator(f'Validator `{validator}` does not exist')
 
 
 def model_name_to_class(model_module, model_name):
@@ -704,7 +702,7 @@ def model_name_to_class(model_module, model_name):
         model_class_name = model_name.title()
         return getattr(model_module, model_class_name)
     except AttributeError:
-        raise ValidationError("%s isn't a valid model" % model_class_name)
+        raise ValidationError(f"{model_class_name} isn't a valid model")
 
 
 def _import_module_functions(module_path):

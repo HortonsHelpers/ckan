@@ -34,8 +34,8 @@ def process_directory(directory, ext='.py'):
     base_len = len(base_path) + 1
     for (dirpath, dirnames, filenames) in os.walk(directory):
         # ignore hidden files and dir
-        filenames = [f for f in filenames if not f[0] == '.']
-        dirnames[:] = [d for d in dirnames if not d[0] == '.']
+        filenames = [f for f in filenames if f[0] != '.']
+        dirnames[:] = [d for d in dirnames if d[0] != '.']
         for name in filenames:
             if name.endswith(ext):
                 path = os.path.join(dirpath, name)
@@ -44,20 +44,15 @@ def process_directory(directory, ext='.py'):
 
 
 def output_errors(filename, errors):
-    out = ['']
-    out.append('-' * len(filename))
-    out.append(filename)
-    out.append('-' * len(filename))
-    for error in errors:
-        out.append(error)
+    out = ['', '-' * len(filename), filename, '-' * len(filename)]
+    out.extend(iter(errors))
     return '\n'.join(out)
 
 
 def show_fails(msg, errors):
     if errors:
         msg = ['\n%s' % msg]
-        for error in errors:
-            msg.append(errors[error])
+        msg.extend(errors[error] for error in errors)
         msg.append('\n\nFailing Files:\n==============')
         msg += sorted(errors)
         raise Exception('\n'.join(msg))
@@ -82,20 +77,17 @@ def cs_filter(f, filter_, ignore_comment_lines=True):
     re_ignore = re.compile(exp % filter_)
     ignore = 0
     out = []
-    count = 1
-    for line in f:
+    for count, line in enumerate(f, start=1):
         # ignore the line if we have been told too
         if ignore > 0:
             line = ''
             ignore -= 1
-        matches = re_ignore.search(line)
-        if matches:
+        if matches := re_ignore.search(line):
             ignore = int(matches.group(2) or 1)
         # ignore comments out lines
         if ignore_comment_lines and line.lstrip().startswith('#'):
             line = ''
         out.append(line)
-        count += 1
     return out
 
 
@@ -125,35 +117,32 @@ class TestBadSpellings(object):
     def process(cls):
         blacklist = cls.BAD_SPELLING_BLACKLIST_FILES
         re_bad_spelling = re.compile(
-            r'(%s)' % '|'.join([x for x in cls.BAD_SPELLINGS]),
-            flags=re.IGNORECASE
+            f"({'|'.join(list(cls.BAD_SPELLINGS))})", flags=re.IGNORECASE
         )
         files = itertools.chain.from_iterable([
             process_directory(base_path),
             process_directory(base_path, ext='.rst')])
         for path, filename in files:
             f = open(path, 'r')
-            count = 1
             errors = []
-            for line in cs_filter(f, 'bad_spelling'):
-                matches = re_bad_spelling.findall(line)
-                if matches:
+            for count, line in enumerate(cs_filter(f, 'bad_spelling'), start=1):
+                if matches := re_bad_spelling.findall(line):
                     bad_words = []
                     for m in matches:
                         if m not in bad_words:
-                            bad_words.append('%s use %s' %
-                                             (m, cls.BAD_SPELLINGS[m.lower()]))
+                            bad_words.append(f'{m} use {cls.BAD_SPELLINGS[m.lower()]}')
                     bad = ', '.join(bad_words)
                     errors.append('ln:%s \t%s\n<%s>' % (count, line[:-1], bad))
-                count += 1
             if errors and filename not in blacklist:
                 cls.fails[filename] = output_errors(filename, errors)
             elif not errors and filename in blacklist:
                 cls.passes.append(filename)
 
     def test_good(self):
-        msg = 'The following files passed bad spellings rules'
-        msg += '\nThey need removing from the test blacklist'
+        msg = (
+            'The following files passed bad spellings rules'
+            + '\nThey need removing from the test blacklist'
+        )
         show_passing(msg, self.passes)
 
     def test_bad(self):
@@ -193,20 +182,21 @@ class TestNastyString(object):
         )
         for path, filename in process_directory(base_path):
             f = open(path, 'r')
-            count = 1
-            errors = []
-            for line in cs_filter(f, 'nasty_string'):
-                if re_nasty_str.search(line):
-                    errors.append('ln:%s \t%s' % (count, line[:-1]))
-                count += 1
+            errors = [
+                'ln:%s \t%s' % (count, line[:-1])
+                for count, line in enumerate(cs_filter(f, 'nasty_string'), start=1)
+                if re_nasty_str.search(line)
+            ]
             if errors and filename not in blacklist:
                 cls.fails[filename] = output_errors(filename, errors)
             elif not errors and filename in blacklist:
                 cls.passes.append(filename)
 
     def test_good(self):
-        msg = 'The following files passed nasty str() rules'
-        msg += '\nThey need removing from the test blacklist'
+        msg = (
+            'The following files passed nasty str() rules'
+            + '\nThey need removing from the test blacklist'
+        )
         show_passing(msg, self.passes)
 
     def test_bad(self):
@@ -334,21 +324,21 @@ class TestImportStar(object):
         re_import_star = re.compile(r'^\s*from\s+.*\simport\s+\*')
         for path, filename in process_directory(base_path):
             f = open(path, 'r')
-            count = 1
-            errors = []
-            for line in f:
-                if re_import_star.search(line):
-                    errors.append('%s ln:%s import *\n\t%s'
-                                  % (filename, count, line))
-                count += 1
+            errors = [
+                '%s ln:%s import *\n\t%s' % (filename, count, line)
+                for count, line in enumerate(f, start=1)
+                if re_import_star.search(line)
+            ]
             if errors and filename not in blacklist:
                 cls.fails[filename] = output_errors(filename, errors)
             elif not errors and filename in blacklist:
                 cls.passes.append(filename)
 
     def test_import_good(self):
-        msg = 'The following files passed import * rules'
-        msg += '\nThey need removing from the test blacklist'
+        msg = (
+            'The following files passed import * rules'
+            + '\nThey need removing from the test blacklist'
+        )
         show_passing(msg, self.passes)
 
     def test_import_bad(self):
@@ -638,8 +628,10 @@ class TestPep8(object):
                 cls.passes.append(filename)
 
     def test_pep8_fails(self):
-        msg = 'The following files have pep8 issues that need resolving'
-        msg += '\nThey need removing from the test blacklist'
+        msg = (
+            'The following files have pep8 issues that need resolving'
+            + '\nThey need removing from the test blacklist'
+        )
         show_fails(msg, self.fails)
 
     def test_pep8_pass(self):
@@ -670,7 +662,7 @@ class TestPep8(object):
             if len(parts) == 3:
                 location, error, desc = parts
                 line_no = location.split(':')[1]
-                errors.append('%s ln:%s %s' % (error, line_no, desc))
+                errors.append(f'{error} ln:{line_no} {desc}')
         return errors
 
     @classmethod
@@ -760,11 +752,11 @@ class TestActionAuth(object):
         def get_functions(module_root):
             fns = {}
             for auth_module_name in ['get', 'create', 'update', 'delete', 'patch']:
-                module_path = '%s.%s' % (module_root, auth_module_name,)
+                module_path = f'{module_root}.{auth_module_name}'
                 try:
                     module = __import__(module_path)
                 except ImportError:
-                    print ('No auth module for action "%s"' % auth_module_name)
+                    print(f'No auth module for action "{auth_module_name}"')
 
                 for part in module_path.split('.')[1:]:
                     module = getattr(module, part)
@@ -775,9 +767,10 @@ class TestActionAuth(object):
                     if v.__module__ != module_path:
                         continue
                     if not key.startswith('_'):
-                        name = '%s: %s' % (auth_module_name, key)
+                        name = f'{auth_module_name}: {key}'
                         fns[name] = v
             return fns
+
         cls.actions = get_functions('logic.action')
         cls.auths = get_functions('logic.auth')
 
@@ -868,20 +861,21 @@ class TestBadExceptions(object):
         )
         for path, filename in process_directory(base_path):
             f = open(path, 'r')
-            count = 1
-            errors = []
-            for line in f:
-                if re_nasty_exception.search(line):
-                    errors.append('ln:%s \t%s' % (count, line[:-1]))
-                count += 1
+            errors = [
+                'ln:%s \t%s' % (count, line[:-1])
+                for count, line in enumerate(f, start=1)
+                if re_nasty_exception.search(line)
+            ]
             if errors and filename not in blacklist:
                 cls.fails[filename] = output_errors(filename, errors)
             elif not errors and filename in blacklist:
                 cls.passes.append(filename)
 
     def test_good(self):
-        msg = 'The following files passed nasty exceptions rules'
-        msg += '\nThey need removing from the test blacklist'
+        msg = (
+            'The following files passed nasty exceptions rules'
+            + '\nThey need removing from the test blacklist'
+        )
         show_passing(msg, self.passes)
 
     def test_bad(self):

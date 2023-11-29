@@ -71,23 +71,18 @@ def make_connection(decode_dates=True):
         # Rebuild the URL with the username/password
         protocol = re.search('http(?:s)?://', solr_url).group()
         solr_url = re.sub(protocol, '', solr_url)
-        solr_url = "{}{}:{}@{}".format(protocol,
-                                       urllib.quote_plus(solr_user),
-                                       urllib.quote_plus(solr_password),
-                                       solr_url)
+        solr_url = f"{protocol}{urllib.quote_plus(solr_user)}:{urllib.quote_plus(solr_password)}@{solr_url}"
 
-    if decode_dates:
-        decoder = simplejson.JSONDecoder(object_hook=solr_datetime_decoder)
-        return pysolr.Solr(solr_url, decoder=decoder)
-    else:
+    if not decode_dates:
         return pysolr.Solr(solr_url)
+    decoder = simplejson.JSONDecoder(object_hook=solr_datetime_decoder)
+    return pysolr.Solr(solr_url, decoder=decoder)
 
 
 def solr_datetime_decoder(d):
     for k, v in d.items():
         if isinstance(v, string_types):
-            possible_datetime = re.search(pysolr.DATETIME_REGEX, v)
-            if possible_datetime:
+            if possible_datetime := re.search(pysolr.DATETIME_REGEX, v):
                 date_values = possible_datetime.groupdict()
                 for dk, dv in date_values.items():
                     date_values[dk] = int(dv)

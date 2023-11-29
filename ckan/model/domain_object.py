@@ -42,14 +42,17 @@ class DomainObject(object):
 
     @classmethod
     def by_name(cls, name, autoflush=True):
-        obj = meta.Session.query(cls).autoflush(autoflush)\
-              .filter_by(name=name).first()
-        return obj
+        return (
+            meta.Session.query(cls)
+            .autoflush(autoflush)
+            .filter_by(name=name)
+            .first()
+        )
 
     @classmethod
     def text_search(cls, query, term):
         register = cls
-        make_like = lambda x,y: x.ilike('%' + y + '%')
+        make_like = lambda x,y: x.ilike(f'%{y}%')
         q = None
         for field in cls.text_search_fields:
             attr = getattr(register, field)
@@ -102,13 +105,13 @@ class DomainObject(object):
         return self.__unicode__().encode('utf8')
 
     def __unicode__(self):
-        repr = u'<%s' % self.__class__.__name__
+        repr = f'<{self.__class__.__name__}'
         table = orm.class_mapper(self.__class__).mapped_table
         for col in table.c:
             try:
-                repr += u' %s=%s' % (col.name, getattr(self, col.name))
+                repr += f' {col.name}={getattr(self, col.name)}'
             except Exception as inst:
-                repr += u' %s=%s' % (col.name, inst)
+                repr += f' {col.name}={inst}'
 
         repr += '>'
         return repr

@@ -42,9 +42,11 @@ def walk_python_files():
     the project root) form.
     '''
     def _is_dir_ignored(root, d):
-        if d.startswith(u'.'):
-            return True
-        return os.path.join(rel_root, d) in IGNORED_DIRS
+        return (
+            True
+            if d.startswith(u'.')
+            else os.path.join(rel_root, d) in IGNORED_DIRS
+        )
 
     for abs_root, dirnames, filenames in os.walk(PROJECT_ROOT):
         rel_root = os.path.relpath(abs_root, PROJECT_ROOT)
@@ -82,8 +84,7 @@ def test_building_the_docs():
                 code=err.returncode))
     output_lines = output.split(u'\n')
 
-    errors = [line for line in output_lines if u'ERROR' in line]
-    if errors:
+    if errors := [line for line in output_lines if u'ERROR' in line]:
         assert False, (u"Don't add any errors to the Sphinx build: "
                        u"{errors}".format(errors=errors))
 
@@ -113,10 +114,9 @@ def test_building_the_docs():
             if allowed_warning in warning:
                 warnings_to_remove.append(warning)
                 break
-    new_warnings = [warning for warning in warnings
-                    if warning not in warnings_to_remove]
-
-    if new_warnings:
+    if new_warnings := [
+        warning for warning in warnings if warning not in warnings_to_remove
+    ]:
         assert False, (u"Don't add any new warnings to the Sphinx build: "
                        u"{warnings}".format(warnings=new_warnings))
 
@@ -148,14 +148,10 @@ def test_source_files_specify_encoding():
     msgs = []
     if no_specification:
         msgs.append(
-            u'The following files are missing an encoding specification: '
-            u'{}'.format(no_specification)
+            f'The following files are missing an encoding specification: {no_specification}'
         )
     if decode_errors:
-        msgs.append(
-            u'The following files are not valid UTF-8: '
-            u'{}'.format(decode_errors)
-        )
+        msgs.append(f'The following files are not valid UTF-8: {decode_errors}')
     if msgs:
         assert False, u'\n\n'.join(msgs)
 
@@ -211,10 +207,11 @@ def find_unprefixed_string_literals(filename):
                 # following code assumes that no ''' or """ literal begins on
                 # the same line where a multi-line literal ends.
                 last_line = lines[lineno]
-                if last_line.rfind(u'"""') > last_line.rfind(u"'''"):
-                    quotes = u'"""'
-                else:
-                    quotes = u"'''"
+                quotes = (
+                    u'"""'
+                    if last_line.rfind(u'"""') > last_line.rfind(u"'''")
+                    else u"'''"
+                )
                 for lineno, line in renumerate(lines[:lineno]):
                     try:
                         i = line.rindex(quotes)
@@ -703,13 +700,14 @@ def test_string_literals_are_prefixed():
     for abs_path, rel_path in walk_python_files():
         if rel_path in _STRING_LITERALS_WHITELIST:
             continue
-        problems = find_unprefixed_string_literals(abs_path)
-        if problems:
+        if problems := find_unprefixed_string_literals(abs_path):
             errors.append((rel_path, problems))
     if errors:
         lines = [u'Unprefixed string literals:']
         for filename, problems in errors:
-            lines.append(u'  ' + filename)
-            for line_no, col_no in problems:
-                lines.append(u'    line {}, column {}'.format(line_no, col_no))
+            lines.append(f'  {filename}')
+            lines.extend(
+                f'    line {line_no}, column {col_no}'
+                for line_no, col_no in problems
+            )
         raise AssertionError(u'\n'.join(lines))

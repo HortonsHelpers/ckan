@@ -53,13 +53,13 @@ class DictizationError(Exception):
 
     def __unicode__(self):
         if hasattr(self, 'error') and self.error:
-            return u'{}: {}'.format(self.__class__.__name__, repr(self.error))
+            return f'{self.__class__.__name__}: {repr(self.error)}'
         return self.__class__.__name__
 
     def __repr__(self):
         if hasattr(self, 'error') and self.error:
-            return '<{} {}>'.format(self.__class__.__name__, repr(self.error))
-        return '<{}>'.format(self.__class__.__name__)
+            return f'<{self.__class__.__name__} {repr(self.error)}>'
+        return f'<{self.__class__.__name__}>'
 
 
 class Invalid(DictizationError):
@@ -124,8 +124,8 @@ def get_all_key_combinations(data, flattened_schema):
     match the schema ignoring the last value in the tuple.
 
     '''
-    schema_prefixes = set([key[:-1] for key in flattened_schema])
-    combinations = set([()])
+    schema_prefixes = {key[:-1] for key in flattened_schema}
+    combinations = {()}
 
     for key in sorted(data.keys(), key=flattened_order_key):
         # make sure the tuple key is a valid one in the schema
@@ -327,7 +327,7 @@ def _validate(data, schema, context):
     converted_data = augment_data(data, schema)
     full_schema = make_full_schema(data, schema)
 
-    errors = dict((key, []) for key in full_schema)
+    errors = {key: [] for key in full_schema}
 
     # before run
     for key in sorted(full_schema, key=flattened_order_key):

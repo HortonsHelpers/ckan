@@ -35,21 +35,17 @@ def string_to_timedelta(s):
         of the recognised formats
 
     '''
-    patterns = []
     days_only_pattern = '(?P<days>\d+)\s+day(s)?'
-    patterns.append(days_only_pattern)
     hms_only_pattern = '(?P<hours>\d?\d):(?P<minutes>\d\d):(?P<seconds>\d\d)'
-    patterns.append(hms_only_pattern)
     ms_only_pattern = '.(?P<milliseconds>\d\d\d)(?P<microseconds>\d\d\d)'
-    patterns.append(ms_only_pattern)
-    hms_and_ms_pattern = hms_only_pattern + ms_only_pattern
-    patterns.append(hms_and_ms_pattern)
     days_and_hms_pattern = '{0},\s+{1}'.format(days_only_pattern,
             hms_only_pattern)
-    patterns.append(days_and_hms_pattern)
-    days_and_hms_and_ms_pattern = days_and_hms_pattern + ms_only_pattern
-    patterns.append(days_and_hms_and_ms_pattern)
-
+    patterns = [
+        days_only_pattern,
+        hms_only_pattern,
+        *(ms_only_pattern, hms_only_pattern + ms_only_pattern),
+        *(days_and_hms_pattern, days_and_hms_pattern + ms_only_pattern),
+    ]
     for pattern in patterns:
         match = re.match('^{0}$'.format(pattern), s)
         if match:
@@ -65,10 +61,14 @@ def string_to_timedelta(s):
     seconds = int(gd.get('seconds', '0'))
     milliseconds = int(gd.get('milliseconds', '0'))
     microseconds = int(gd.get('microseconds', '0'))
-    delta = datetime.timedelta(days=days, hours=hours, minutes=minutes,
-            seconds=seconds, milliseconds=milliseconds,
-            microseconds=microseconds)
-    return delta
+    return datetime.timedelta(
+        days=days,
+        hours=hours,
+        minutes=minutes,
+        seconds=seconds,
+        milliseconds=milliseconds,
+        microseconds=microseconds,
+    )
 
 
 def _notifications_for_activities(activities, user_dict):
@@ -106,12 +106,7 @@ def _notifications_for_activities(activities, user_dict):
     body = base.render(
             'activity_streams/activity_stream_email_notifications.text',
             extra_vars={'activities': activities})
-    notifications = [{
-        'subject': subject,
-        'body': body
-        }]
-
-    return notifications
+    return [{'subject': subject, 'body': body}]
 
 
 def _notifications_from_dashboard_activity_list(user_dict, since):

@@ -61,5 +61,5 @@ class ErrorController(BaseController):
         """Call Paste's FileApp (a WSGI application) to serve the file
         at the specified path
         """
-        request.environ['PATH_INFO'] = '/%s' % path
+        request.environ['PATH_INFO'] = f'/{path}'
         return forward(PkgResourcesParser('pylons', 'pylons'))
