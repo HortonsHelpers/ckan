@@ -126,23 +126,23 @@ def table_dict_save(table_dict, ModelClass, context):
 
     obj = None
 
-    id = table_dict.get("id")
-
-    if id:
+    if id := table_dict.get("id"):
         obj = session.query(ModelClass).get(id)
 
     if not obj:
         unique_constraints = get_unique_constraints(table, context)
         for constraint in unique_constraints:
-            params = dict((key, table_dict.get(key)) for key in constraint)
+            params = {key: table_dict.get(key) for key in constraint}
             obj = session.query(ModelClass).filter_by(**params).first()
             if obj:
-                if 'name' in params and getattr(obj, 'state', None) == State.DELETED:
-                    obj.name = obj.id
-                    obj = None
-                else:
+                if (
+                    'name' not in params
+                    or getattr(obj, 'state', None) != State.DELETED
+                ):
                     break
 
+                obj.name = obj.id
+                obj = None
     if not obj:
         obj = ModelClass()
 

@@ -320,10 +320,8 @@ content type, cookies, etc.
         t['HelperError'] = HelperError
         t['enqueue_job'] = enqueue_job
 
-        # check contents list correct
-        errors = set(t).symmetric_difference(set(self.contents))
-        if errors:
-            raise Exception('Plugin toolkit error %s not matching' % errors)
+        if errors := set(t).symmetric_difference(set(self.contents)):
+            raise Exception(f'Plugin toolkit error {errors} not matching')
 
     # wrappers
     # Wrapper for the render_snippet function as it uses keywords rather than
@@ -368,13 +366,13 @@ content type, cookies, etc.
         # we want the filename that of the function caller but they will
         # have used one of the available helper functions
         frame, filename, line_number, function_name, lines, index =\
-            inspect.getouterframes(inspect.currentframe())[2]
+                inspect.getouterframes(inspect.currentframe())[2]
 
         this_dir = os.path.dirname(filename)
         absolute_path = os.path.join(this_dir, relative_path)
         if absolute_path not in config.get(config_var, '').split(','):
             if config.get(config_var):
-                config[config_var] += ',' + absolute_path
+                config[config_var] += f',{absolute_path}'
             else:
                 config[config_var] = absolute_path
 
@@ -481,7 +479,7 @@ content type, cookies, etc.
         if not cls._check_ckan_version(min_version=min_version,
                                        max_version=max_version):
             if not max_version:
-                error = 'Requires ckan version %s or higher' % min_version
+                error = f'Requires ckan version {min_version} or higher'
             else:
                 error = 'Requires ckan version between {0} and {1}'.format(
                     min_version,
@@ -505,9 +503,7 @@ content type, cookies, etc.
         # there are some routes('hello_world') that are not using blueprint
         # For such case, let's assume that view function is a controller
         # itself and action is None.
-        if len(endpoint) is 1:
-            return endpoint + (None,)
-        return endpoint
+        return endpoint + (None,) if len(endpoint) is 1 else endpoint
 
     def __getattr__(self, name):
         ''' return the function/object requested '''
@@ -515,10 +511,9 @@ content type, cookies, etc.
             self._initialize()
         if name in self._toolkit:
             return self._toolkit[name]
-        else:
-            if name == '__bases__':
-                return self.__class__.__bases__
-            raise AttributeError('`%s` not found in plugins toolkit' % name)
+        if name == '__bases__':
+            return self.__class__.__bases__
+        raise AttributeError(f'`{name}` not found in plugins toolkit')
 
     def __dir__(self):
         if not self._toolkit:

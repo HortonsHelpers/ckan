@@ -56,8 +56,7 @@ def get_system_info(key, default=None):
     ''' get data from system_info table '''
     from sqlalchemy.exc import ProgrammingError
     try:
-        obj = meta.Session.query(SystemInfo).filter_by(key=key).first()
-        if obj:
+        if obj := meta.Session.query(SystemInfo).filter_by(key=key).first():
             return obj.value
     except ProgrammingError:
         meta.Session.rollback()
@@ -67,8 +66,7 @@ def get_system_info(key, default=None):
 
 def delete_system_info(key, default=None):
     ''' delete data from system_info table '''
-    obj = meta.Session.query(SystemInfo).filter_by(key=key).first()
-    if obj:
+    if obj := meta.Session.query(SystemInfo).filter_by(key=key).first():
         meta.Session.delete(obj)
         meta.Session.commit()
 

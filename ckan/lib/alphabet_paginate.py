@@ -49,11 +49,11 @@ class AlphaPage(object):
         self.paging_threshold = paging_threshold
         self.controller_name = controller_name
 
-        self.letters = [char for char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'] + [self.other_text]
+        self.letters = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ') + [self.other_text]
 
         # Work out which alphabet letters are 'available' i.e. have some results
         # because we grey-out those which aren't.
-        self.available = dict( (c,0,) for c in self.letters )
+        self.available = {c: 0 for c in self.letters}
         for c in self.collection:
             if isinstance(c, text_type):
                 x = c[0]
@@ -86,10 +86,7 @@ class AlphaPage(object):
             href = url_for(controller=self.controller_name, action='index', page=letter)
             link = HTML.a(href=href, c=letter)
             if letter != page:
-                if self.available.get(letter, 0):
-                    li_class = ''
-                else:
-                    li_class = 'disabled'
+                li_class = '' if self.available.get(letter, 0) else 'disabled'
             else:
                 li_class = 'active'
             attributes = {'class_': li_class} if li_class else {}
@@ -116,7 +113,7 @@ class AlphaPage(object):
                                  self.alpha_attribute)
                 query = query.add_columns(entity)
                 column = dropwhile(lambda x: x['name'] != \
-                                   self.alpha_attribute,
+                                       self.alpha_attribute,
                                    query.column_descriptions)
                 attribute = column.next()['expr']
             if self.item_count >= self.paging_threshold:
@@ -129,19 +126,36 @@ class AlphaPage(object):
             return query.all()
         elif isinstance(self.collection,list):
             if self.item_count >= self.paging_threshold:
-                if self.page != self.other_text:
-                    if isinstance(self.collection[0], dict):
-                        items = [x for x in self.collection if x[self.alpha_attribute][0:1].lower() == self.page.lower()]
-                    elif isinstance(self.collection[0], text_type):
-                        items = [x for x in self.collection if x[0:1].lower() == self.page.lower()]
-                    else:
-                        items = [x for x in self.collection if getattr(x,self.alpha_attribute)[0:1].lower() == self.page.lower()]
-                else:
+                if self.page == self.other_text:
                     # regexp search
-                    if isinstance(self.collection[0], dict):
-                        items = [x for x in self.collection if re.match('^[^a-zA-Z].*',x[self.alpha_attribute])]
-                    else:
-                        items = [x for x in self.collection if re.match('^[^a-zA-Z].*',x)]
+                    items = (
+                        [
+                            x
+                            for x in self.collection
+                            if re.match('^[^a-zA-Z].*', x[self.alpha_attribute])
+                        ]
+                        if isinstance(self.collection[0], dict)
+                        else [
+                            x
+                            for x in self.collection
+                            if re.match('^[^a-zA-Z].*', x)
+                        ]
+                    )
+                elif isinstance(self.collection[0], dict):
+                    items = [
+                        x
+                        for x in self.collection
+                        if x[self.alpha_attribute][:1].lower() == self.page.lower()
+                    ]
+                elif isinstance(self.collection[0], text_type):
+                    items = [x for x in self.collection if x[:1].lower() == self.page.lower()]
+                else:
+                    items = [
+                        x
+                        for x in self.collection
+                        if getattr(x, self.alpha_attribute)[:1].lower()
+                        == self.page.lower()
+                    ]
                 items.sort()
             else:
                 items = self.collection

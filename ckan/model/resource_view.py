@@ -26,12 +26,7 @@ class ResourceView(domain_object.DomainObject):
     @classmethod
     def get(cls, reference):
         '''Returns a ResourceView object referenced by its id.'''
-        if not reference:
-            return None
-
-        view = meta.Session.query(cls).get(reference)
-
-        return view
+        return None if not reference else meta.Session.query(cls).get(reference)
 
     @classmethod
     def get_columns(cls):

@@ -11,11 +11,9 @@ def to_jsonp(data):
     content_type = 'application/json;charset=utf-8'
     result = json.dumps(data, sort_keys=True)
     if 'callback' in request.params:
-        response.headers['Content-Type'] = content_type
         cbname = request.params['callback']
-        result = '%s(%s);' % (cbname, result)
-    else:
-        response.headers['Content-Type'] = content_type
+        result = f'{cbname}({result});'
+    response.headers['Content-Type'] = content_type
     return result
 
 

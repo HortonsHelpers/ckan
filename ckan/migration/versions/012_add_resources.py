@@ -36,10 +36,10 @@ def upgrade(migrate_engine):
         Column('continuity_id', Integer, ForeignKey('package_resource.id'))
         )
 
-    
+
     package_resource_table.create()
     package_resource_revision_table.create()
-    
+
     # Move download_urls across to resources
     # NB: strictly we should check each package_revision to check whether
     # download_url changed (and if only change) and then create
@@ -49,8 +49,7 @@ def upgrade(migrate_engine):
     engine = migrate_engine
     select_sql = select([package_table])
     for pkg in engine.execute(select_sql):
-        download_url = pkg['download_url']
-        if download_url:
+        if download_url := pkg['download_url']:
             # what about revision_id?
             res_values = {'package_id':pkg.id,
                           'url':download_url,

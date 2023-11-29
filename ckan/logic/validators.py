@@ -50,9 +50,13 @@ def owner_org_validator(key, data, errors, context):
     if not group:
         raise Invalid(_('Organization does not exist'))
     group_id = group.id
-    if not context.get(u'ignore_auth', False) and not(user.sysadmin or
-           authz.has_user_permission_for_group_or_org(
-               group_id, user.name, 'create_dataset')):
+    if (
+        not context.get(u'ignore_auth', False)
+        and not user.sysadmin
+        and not authz.has_user_permission_for_group_or_org(
+            group_id, user.name, 'create_dataset'
+        )
+    ):
         raise Invalid(_('You cannot add a dataset to this organization'))
     data[key] = group_id
 
@@ -119,9 +123,7 @@ def boolean_validator(value, context):
         return False
     if isinstance(value, bool):
         return value
-    if value.lower() in ['true', 'yes', 't', 'y', '1']:
-        return True
-    return False
+    return value.lower() in ['true', 'yes', 't', 'y', '1']
 
 def isodate(value, context):
     if isinstance(value, datetime.datetime):
@@ -148,18 +150,17 @@ def package_id_exists(value, context):
     model = context['model']
     session = context['session']
 
-    result = session.query(model.Package).get(value)
-    if not result:
-        raise Invalid('%s: %s' % (_('Not found'), _('Dataset')))
-    return value
+    if result := session.query(model.Package).get(value):
+        return value
+    else:
+        raise Invalid(f"{_('Not found')}: {_('Dataset')}")
 
 def package_id_does_not_exist(value, context):
 
     model = context['model']
     session = context['session']
 
-    result = session.query(model.Package).get(value)
-    if result:
+    if result := session.query(model.Package).get(value):
         raise Invalid(_('Dataset id already exists'))
     return value
 
@@ -168,11 +169,10 @@ def package_name_exists(value, context):
     model = context['model']
     session = context['session']
 
-    result = session.query(model.Package).filter_by(name=value).first()
-
-    if not result:
-        raise Invalid(_('Not found') + ': %s' % value)
-    return value
+    if result := session.query(model.Package).filter_by(name=value).first():
+        return value
+    else:
+        raise Invalid(_('Not found') + f': {value}')
 
 def package_id_or_name_exists(package_id_or_name, context):
     '''Return the given package_id_or_name if such a package exists.
@@ -184,24 +184,24 @@ def package_id_or_name_exists(package_id_or_name, context):
     model = context['model']
     session = context['session']
 
-    result = session.query(model.Package).get(package_id_or_name)
-    if result:
+    if result := session.query(model.Package).get(package_id_or_name):
         return package_id_or_name
 
-    result = session.query(model.Package).filter_by(
-            name=package_id_or_name).first()
-
-    if not result:
-        raise Invalid('%s: %s' % (_('Not found'), _('Dataset')))
-
-    return package_id_or_name
+    if (
+        result := session.query(model.Package)
+        .filter_by(name=package_id_or_name)
+        .first()
+    ):
+        return package_id_or_name
+    else:
+        raise Invalid(f"{_('Not found')}: {_('Dataset')}")
 
 
 def resource_id_exists(value, context):
     model = context['model']
     session = context['session']
     if not session.query(model.Resource).get(value):
-        raise Invalid('%s: %s' % (_('Not found'), _('Resource')))
+        raise Invalid(f"{_('Not found')}: {_('Resource')}")
     return value
 
 
@@ -213,10 +213,10 @@ def user_id_exists(user_id, context):
     model = context['model']
     session = context['session']
 
-    result = session.query(model.User).get(user_id)
-    if not result:
-        raise Invalid('%s: %s' % (_('Not found'), _('User')))
-    return user_id
+    if result := session.query(model.User).get(user_id):
+        return user_id
+    else:
+        raise Invalid(f"{_('Not found')}: {_('User')}")
 
 def user_id_or_name_exists(user_id_or_name, context):
     '''Return the given user_id_or_name if such a user exists.
@@ -227,13 +227,16 @@ def user_id_or_name_exists(user_id_or_name, context):
     '''
     model = context['model']
     session = context['session']
-    result = session.query(model.User).get(user_id_or_name)
-    if result:
+    if result := session.query(model.User).get(user_id_or_name):
         return user_id_or_name
-    result = session.query(model.User).filter_by(name=user_id_or_name).first()
-    if not result:
-        raise Invalid('%s: %s' % (_('Not found'), _('User')))
-    return user_id_or_name
+    if (
+        result := session.query(model.User)
+        .filter_by(name=user_id_or_name)
+        .first()
+    ):
+        return user_id_or_name
+    else:
+        raise Invalid(f"{_('Not found')}: {_('User')}")
 
 def group_id_exists(group_id, context):
     '''Raises Invalid if the given group_id does not exist in the model given
@@ -243,20 +246,20 @@ def group_id_exists(group_id, context):
     model = context['model']
     session = context['session']
 
-    result = session.query(model.Group).get(group_id)
-    if not result:
-        raise Invalid('%s: %s' % (_('Not found'), _('Group')))
-    return group_id
+    if result := session.query(model.Group).get(group_id):
+        return group_id
+    else:
+        raise Invalid(f"{_('Not found')}: {_('Group')}")
 
 def group_id_or_name_exists(reference, context):
     '''
     Raises Invalid if a group identified by the name or id cannot be found.
     '''
     model = context['model']
-    result = model.Group.get(reference)
-    if not result:
+    if result := model.Group.get(reference):
+        return reference
+    else:
         raise Invalid(_('That group name or ID does not exist.'))
-    return reference
 
 def activity_type_exists(activity_type):
     '''Raises Invalid if there is no registered activity renderer for the
@@ -269,7 +272,7 @@ def activity_type_exists(activity_type):
     if activity_type in object_id_validators:
         return activity_type
     else:
-        raise Invalid('%s: %s' % (_('Not found'), _('Activity type')))
+        raise Invalid(f"{_('Not found')}: {_('Activity type')}")
 
 
 # A dictionary mapping activity_type values from activity dicts to functions
@@ -354,10 +357,7 @@ def package_name_validator(key, data, errors, context):
     package = context.get('package')
 
     query = session.query(model.Package.state).filter_by(name=data[key])
-    if package:
-        package_id = package.id
-    else:
-        package_id = data.get(key[:-1] + ('id',))
+    package_id = package.id if package else data.get(key[:-1] + ('id',))
     if package_id and package_id is not missing:
         query = query.filter(model.Package.id != package_id)
     result = query.first()
@@ -385,11 +385,7 @@ def duplicate_extras_key(key, data, errors, context):
 
     unflattened = df.unflatten(data)
     extras = unflattened.get('extras', [])
-    extras_keys = []
-    for extra in extras:
-        if not extra.get('deleted'):
-            extras_keys.append(extra['key'])
-
+    extras_keys = [extra['key'] for extra in extras if not extra.get('deleted')]
     for extra_key in set(extras_keys):
         extras_keys.remove(extra_key)
     if extras_keys:
@@ -403,14 +399,10 @@ def group_name_validator(key, data, errors, context):
     group = context.get('group')
 
     query = session.query(model.Group.name).filter_by(name=data[key])
-    if group:
-        group_id = group.id
-    else:
-        group_id = data.get(key[:-1] + ('id',))
+    group_id = group.id if group else data.get(key[:-1] + ('id',))
     if group_id and group_id is not missing:
         query = query.filter(model.Group.id != group_id)
-    result = query.first()
-    if result:
+    if result := query.first():
         errors[key].append(_('Group name already exists in database'))
 
 def tag_length_validator(value, context):
@@ -437,7 +429,7 @@ def tag_not_uppercase(value, context):
 
     tagname_uppercase = re.compile('[A-Z]')
     if tagname_uppercase.search(value):
-        raise Invalid(_('Tag "%s" must not be uppercase' % (value)))
+        raise Invalid(_(f'Tag "{value}" must not be uppercase'))
     return value
 
 def tag_string_convert(key, data, errors, context):
@@ -599,7 +591,7 @@ def user_passwords_match(key, data, errors, context):
     password1 = data.get(('password1',),None)
     password2 = data.get(('password2',),None)
 
-    if not password1 == password2:
+    if password1 != password2:
         errors[key].append(_('The passwords you entered do not match'))
     else:
         #Set correct password
@@ -614,7 +606,7 @@ def user_password_not_empty(key, data, errors, context):
             authz.is_sysadmin(context.get('user'))):
         return
 
-    if not ('password1',) in data and not ('password2',) in data:
+    if ('password1',) not in data and ('password2',) not in data:
         password = data.get(('password',),None)
         if not password:
             errors[key].append(_('Missing value'))
@@ -636,8 +628,7 @@ def vocabulary_name_validator(name, context):
         raise Invalid(_('Name must be a maximum of %i characters long') %
                       VOCABULARY_NAME_MAX_LENGTH)
     query = session.query(model.Vocabulary.name).filter_by(name=name)
-    result = query.first()
-    if result:
+    if result := query.first():
         raise Invalid(_('That vocabulary name is already in use.'))
     return name
 
@@ -651,16 +642,15 @@ def vocabulary_id_not_changed(value, context):
 def vocabulary_id_exists(value, context):
     model = context['model']
     session = context['session']
-    result = session.query(model.Vocabulary).get(value)
-    if not result:
+    if result := session.query(model.Vocabulary).get(value):
+        return value
+    else:
         raise Invalid(_('Tag vocabulary was not found.'))
-    return value
 
 def tag_in_vocabulary_validator(value, context):
     model = context['model']
     session = context['session']
-    vocabulary = context.get('vocabulary')
-    if vocabulary:
+    if vocabulary := context.get('vocabulary'):
         query = session.query(model.Tag)\
             .filter(model.Tag.vocabulary_id==vocabulary.id)\
             .filter(model.Tag.name==value)\
@@ -715,10 +705,10 @@ def url_validator(key, data, errors, context):
 def user_name_exists(user_name, context):
     model = context['model']
     session = context['session']
-    result = session.query(model.User).filter_by(name=user_name).first()
-    if not result:
-        raise Invalid('%s: %s' % (_('Not found'), _('User')))
-    return result.name
+    if result := session.query(model.User).filter_by(name=user_name).first():
+        return result.name
+    else:
+        raise Invalid(f"{_('Not found')}: {_('User')}")
 
 
 def role_exists(role, context):
@@ -761,7 +751,7 @@ def list_of_strings(key, data, errors, context):
         raise Invalid(_('Not a list'))
     for x in value:
         if not isinstance(x, string_types):
-            raise Invalid('%s: %s' % (_('Not a string'), x))
+            raise Invalid(f"{_('Not a string')}: {x}")
 
 def if_empty_guess_format(key, data, errors, context):
     value = data[key]
@@ -782,7 +772,7 @@ def no_loops_in_hierarchy(key, data, errors, context):
     a loop in the group hierarchy, and therefore cause the recursion up/down
     the hierarchy to get into an infinite loop.
     '''
-    if not 'id' in data:
+    if 'id' not in data:
         # Must be a new group - has no children, so no chance of loops
         return
     group = context['model'].Group.get(data['id'])
@@ -866,17 +856,17 @@ def email_is_unique(key, data, errors, context):
     model = context['model']
     session = context['session']
 
-    users = session.query(model.User) \
-            .filter(model.User.email == data[key]).all()
-    # is there is no users with this email it's free
-    if not users:
+    if not (
+        users := session.query(model.User)
+        .filter(model.User.email == data[key])
+        .all()
+    ):
         return
-    else:
-        # allow user to update their own email
-        for user in users:
-            if (user.name == data[("name",)]
-                    or user.id == data[("id",)]):
-                return
+    # allow user to update their own email
+    for user in users:
+        if (user.name == data[("name",)]
+                or user.id == data[("id",)]):
+            return
 
     raise Invalid(
                 _('The email address \'{email}\' \

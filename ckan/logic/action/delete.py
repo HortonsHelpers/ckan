@@ -192,8 +192,7 @@ def resource_delete(context, data_dict):
             logging.warning("%s does not have delete function, could not cleanup: %s", type(upload).__name__, id)
 
     if pkg_dict.get('resources'):
-        pkg_dict['resources'] = [r for r in pkg_dict['resources'] if not
-                r['id'] == id]
+        pkg_dict['resources'] = [r for r in pkg_dict['resources'] if r['id'] != id]
     try:
         pkg_dict = _get_action('package_update')(context, pkg_dict)
     except ValidationError as e:
@@ -276,7 +275,7 @@ def package_relationship_delete(context, data_dict):
         raise NotFound
 
     relationship = existing_rels[0]
-    revisioned_details = 'Package Relationship: %s %s %s' % (id, rel, id2)
+    revisioned_details = f'Package Relationship: {id} {rel} {id2}'
 
     context['relationship'] = relationship
     _check_access('package_relationship_delete', context, data_dict)
@@ -313,16 +312,18 @@ def member_delete(context, data_dict=None):
     obj_class = ckan.logic.model_name_to_class(model, obj_type)
     obj = obj_class.get(obj_id)
     if not obj:
-        raise NotFound('%s was not found.' % obj_type.title())
+        raise NotFound(f'{obj_type.title()} was not found.')
 
     _check_access('member_delete', context, data_dict)
 
-    member = model.Session.query(model.Member).\
-            filter(model.Member.table_name == obj_type).\
-            filter(model.Member.table_id == obj.id).\
-            filter(model.Member.group_id == group.id).\
-            filter(model.Member.state    == 'active').first()
-    if member:
+    if (
+        member := model.Session.query(model.Member)
+        .filter(model.Member.table_name == obj_type)
+        .filter(model.Member.table_id == obj.id)
+        .filter(model.Member.group_id == group.id)
+        .filter(model.Member.state == 'active')
+        .first()
+    ):
         rev = model.repo.new_revision()
         rev.author = context.get('user')
         rev.message = _(u'REST API: Delete Member: %s') % obj_id
@@ -349,7 +350,7 @@ def _group_or_org_delete(context, data_dict, is_org=False):
     if group is None:
         raise NotFound('Group was not found.')
 
-    revisioned_details = 'Group: %s' % group.name
+    revisioned_details = f'Group: {group.name}'
 
     if is_org:
         _check_access('organization_delete', context, data_dict)
@@ -359,11 +360,12 @@ def _group_or_org_delete(context, data_dict, is_org=False):
     # organization delete will not occure whilke all datasets for that org are
     # not deleted
     if is_org:
-        datasets = model.Session.query(model.Package) \
-                        .filter_by(owner_org=group.id) \
-                        .filter(model.Package.state != 'deleted') \
-                        .count()
-        if datasets:
+        if (
+            datasets := model.Session.query(model.Package)
+            .filter_by(owner_org=group.id)
+            .filter(model.Package.state != 'deleted')
+            .count()
+        ):
             if not authz.check_config_permission('ckan.auth.create_unowned_dataset'):
                 raise ValidationError(_('Organization cannot be deleted while it '
                                       'still has datasets'))
@@ -458,12 +460,12 @@ def _group_or_org_purge(context, data_dict, is_org=False):
         _check_access('group_purge', context, data_dict)
 
     if is_org:
-        # Clear the owner_org field
-        datasets = model.Session.query(model.Package) \
-                        .filter_by(owner_org=group.id) \
-                        .filter(model.Package.state != 'deleted') \
-                        .count()
-        if datasets:
+        if (
+            datasets := model.Session.query(model.Package)
+            .filter_by(owner_org=group.id)
+            .filter(model.Package.state != 'deleted')
+            .count()
+        ):
             if not authz.check_config_permission('ckan.auth.create_unowned_dataset'):
                 raise ValidationError('Organization cannot be purged while it '
                                       'still has datasets')
@@ -745,7 +747,7 @@ def job_clear(context, data_dict):
     names = [jobs.remove_queue_name_prefix(queue.name) for queue in queues]
     for queue, name in zip(queues, names):
         queue.empty()
-        log.info(u'Cleared background job queue "{}"'.format(name))
+        log.info(f'Cleared background job queue "{name}"')
     return names
 
 
@@ -762,6 +764,6 @@ def job_cancel(context, data_dict):
     id = _get_or_bust(data_dict, u'id')
     try:
         jobs.job_from_id(id).delete()
-        log.info(u'Cancelled background job {}'.format(id))
+        log.info(f'Cancelled background job {id}')
     except KeyError:
         raise NotFound

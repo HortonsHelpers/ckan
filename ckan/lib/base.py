@@ -145,7 +145,7 @@ def _pylons_prepare_renderer(template_name, extra_vars, cache_key=None,
         except render_.TemplateNotFound:
             raise
 
-        log.debug('rendering %s [%s]' % (template_path, template_type))
+        log.debug(f'rendering {template_path} [{template_type}]')
         if config.get('debug'):
             context_vars = globs.get('c')
             if context_vars:
@@ -170,8 +170,9 @@ def _pylons_prepare_renderer(template_name, extra_vars, cache_key=None,
             response.headers["Cache-Control"] = "public"
             try:
                 cache_expire = int(config.get('ckan.cache_expires', 0))
-                response.headers["Cache-Control"] += \
-                    ", max-age=%s, must-revalidate" % cache_expire
+                response.headers[
+                    "Cache-Control"
+                ] += f", max-age={cache_expire}, must-revalidate"
             except ValueError:
                 pass
         else:
@@ -257,5 +258,8 @@ class BaseController(WSGIController):
 
 
 # Include the '_' function in the public names
-__all__ = [__name for __name in locals().keys() if not __name.startswith('_')
-           or __name == '_']
+__all__ = [
+    __name
+    for __name in locals()
+    if not __name.startswith('_') or __name == '_'
+]

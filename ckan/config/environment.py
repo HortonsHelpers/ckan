@@ -57,16 +57,11 @@ def load_environment(global_conf, app_conf):
         if '.' in controller or ':' in controller:
             ep = pkg_resources.EntryPoint.parse('x={0}'.format(controller))
 
-            if hasattr(ep, 'resolve'):
-                # setuptools >= 10.2
-                mycontroller = ep.resolve()
-            else:
-                # setuptools >= 11.3
-                mycontroller = ep.load(False)
-
+            mycontroller = ep.resolve() if hasattr(ep, 'resolve') else ep.load(False)
             self.controller_classes[controller] = mycontroller
             return mycontroller
         return find_controller_generic(self, controller)
+
     find_controller._old_find_controller = find_controller_generic
     PylonsApp.find_controller = find_controller
 
@@ -85,7 +80,7 @@ def load_environment(global_conf, app_conf):
             'Possible values are: "public" and "public-bs2".'
         )
 
-    log.info('Loading static files from %s' % static_files)
+    log.info(f'Loading static files from {static_files}')
     paths = dict(root=root,
                  controllers=os.path.join(root, 'controllers'),
                  static_files=os.path.join(root, static_files),
@@ -167,19 +162,14 @@ def update_config():
         # config = plugin.update_config(config)
         plugin.update_config(config)
 
-    # Set whitelisted env vars on config object
-    # This is set up before globals are initialized
-
-    ckan_db = os.environ.get('CKAN_DB', None)
-    if ckan_db:
+    if ckan_db := os.environ.get('CKAN_DB', None):
         msg = 'Setting CKAN_DB as an env var is deprecated and will be' \
             ' removed in a future release. Use CKAN_SQLALCHEMY_URL instead.'
         log.warn(msg)
         config['sqlalchemy.url'] = ckan_db
 
     for option in CONFIG_FROM_ENV_VARS:
-        from_env = os.environ.get(CONFIG_FROM_ENV_VARS[option], None)
-        if from_env:
+        if from_env := os.environ.get(CONFIG_FROM_ENV_VARS[option], None):
             config[option] = from_env
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -253,11 +243,10 @@ def update_config():
         )
 
     jinja2_templates_path = os.path.join(root, templates)
-    log.info('Loading templates from %s' % jinja2_templates_path)
+    log.info(f'Loading templates from {jinja2_templates_path}')
     template_paths = [jinja2_templates_path]
 
-    extra_template_paths = config.get('extra_template_paths', '')
-    if extra_template_paths:
+    if extra_template_paths := config.get('extra_template_paths', ''):
         # must be first for them to override defaults
         template_paths = extra_template_paths.split(',') + template_paths
     config['computed_template_paths'] = template_paths

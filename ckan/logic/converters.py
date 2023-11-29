@@ -120,7 +120,7 @@ def convert_user_name_or_id_to_id(user_name_or_id, context):
         result = session.query(model.User).filter_by(
                 name=user_name_or_id).first()
     if not result:
-        raise df.Invalid('%s: %s' % (_('Not found'), _('User')))
+        raise df.Invalid(f"{_('Not found')}: {_('User')}")
     return result.id
 
 def convert_package_name_or_id_to_id(package_name_or_id, context):
@@ -145,7 +145,7 @@ def convert_package_name_or_id_to_id(package_name_or_id, context):
         result = session.query(model.Package).filter_by(
                 name=package_name_or_id).first()
     if not result:
-        raise df.Invalid('%s: %s' % (_('Not found'), _('Dataset')))
+        raise df.Invalid(f"{_('Not found')}: {_('Dataset')}")
     return result.id
 
 def convert_group_name_or_id_to_id(group_name_or_id, context):
@@ -170,28 +170,22 @@ def convert_group_name_or_id_to_id(group_name_or_id, context):
         result = session.query(model.Group).filter_by(
                 name=group_name_or_id).first()
     if not result:
-        raise df.Invalid('%s: %s' % (_('Not found'), _('Group')))
+        raise df.Invalid(f"{_('Not found')}: {_('Group')}")
     return result.id
 
 
 def convert_to_json_if_string(value, context):
-    if isinstance(value, string_types):
-        try:
-            return json.loads(value)
-        except ValueError:
-            raise df.Invalid(_('Could not parse as valid JSON'))
-    else:
+    if not isinstance(value, string_types):
         return value
+    try:
+        return json.loads(value)
+    except ValueError:
+        raise df.Invalid(_('Could not parse as valid JSON'))
 
 
 def convert_to_list_if_string(value, context=None):
-    if isinstance(value, string_types):
-        return [value]
-    else:
-        return value
+    return [value] if isinstance(value, string_types) else value
 
 
 def remove_whitespace(value, context):
-    if isinstance(value, string_types):
-        return value.strip()
-    return value
+    return value.strip() if isinstance(value, string_types) else value

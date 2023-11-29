@@ -17,11 +17,27 @@ log = logging.getLogger(__name__)
 
 _open_licenses = None
 
-VALID_SOLR_PARAMETERS = set([
-    'q', 'fl', 'fq', 'rows', 'sort', 'start', 'wt', 'qf', 'bf', 'boost',
-    'facet', 'facet.mincount', 'facet.limit', 'facet.field',
-    'extras', 'fq_list', 'tie', 'defType', 'mm'
-])
+VALID_SOLR_PARAMETERS = {
+    'q',
+    'fl',
+    'fq',
+    'rows',
+    'sort',
+    'start',
+    'wt',
+    'qf',
+    'bf',
+    'boost',
+    'facet',
+    'facet.mincount',
+    'facet.limit',
+    'facet.field',
+    'extras',
+    'fq_list',
+    'tie',
+    'defType',
+    'mm',
+}
 
 # for (solr) package searches, this specifies the fields that are searched
 # and their relative weighting
@@ -53,12 +69,12 @@ def convert_legacy_parameters_to_solr(legacy_params):
         if search_key == 'all_fields':
             if value:
                 solr_params['fl'] = '*'
-        elif search_key == 'offset':
-            solr_params['start'] = value
         elif search_key == 'limit':
             solr_params['rows'] = value
+        elif search_key == 'offset':
+            solr_params['start'] = value
         elif search_key == 'order_by':
-            solr_params['sort'] = '%s asc' % value
+            solr_params['sort'] = f'{value} asc'
         elif search_key == 'tags':
             if isinstance(value_obj, list):
                 tag_list = value_obj
@@ -66,13 +82,14 @@ def convert_legacy_parameters_to_solr(legacy_params):
                 tag_list = [value_obj]
             else:
                 raise SearchQueryError('Was expecting either a string or JSON list for the tags parameter: %r' % value)
-            solr_q_list.extend(['tags:"%s"' % escape_legacy_argument(tag) for tag in tag_list])
-        else:
-            if len(value.strip()):
-                value = escape_legacy_argument(value)
-                if ' ' in value:
-                    value = '"%s"' % value
-                solr_q_list.append('%s:%s' % (search_key, value))
+            solr_q_list.extend(
+                [f'tags:"{escape_legacy_argument(tag)}"' for tag in tag_list]
+            )
+        elif len(value.strip()):
+            value = escape_legacy_argument(value)
+            if ' ' in value:
+                value = f'"{value}"'
+            solr_q_list.append(f'{search_key}:{value}')
         del solr_params[search_key]
     solr_params['q'] = ' '.join(solr_q_list)
     if non_solr_params:
@@ -98,7 +115,7 @@ class QueryOptions(dict):
 
         # set values according to the defaults
         for option_name, default_value in DEFAULT_OPTIONS.items():
-            if not option_name in self:
+            if option_name not in self:
                 self[option_name] = default_value
 
         super(QueryOptions, self).__init__(**kwargs)
@@ -143,10 +160,11 @@ class SearchQuery(object):
         # TODO: figure out if they change during run-time.
         global _open_licenses
         if not isinstance(_open_licenses, list):
-            _open_licenses = []
-            for license in model.Package.get_license_register().values():
-                if license and license.isopen():
-                    _open_licenses.append(license.id)
+            _open_licenses = [
+                license.id
+                for license in model.Package.get_license_register().values()
+                if license and license.isopen()
+            ]
         return _open_licenses
 
     def get_all_entity_ids(self, max_results=1000):
@@ -222,9 +240,7 @@ class ResourceSearchQuery(SearchQuery):
         for field, terms in fields.items():
             if isinstance(terms, six.string_types):
                 terms = terms.split()
-            for term in terms:
-                query.append(':'.join([field, term]))
-
+            query.extend(':'.join([field, term]) for term in terms)
         data_dict = {
             'query': query,
             'offset': options.get('offset'),
@@ -234,8 +250,6 @@ class ResourceSearchQuery(SearchQuery):
         results = logic.get_action('resource_search')(context, data_dict)
 
         if not options.return_objects:
-            # if options.all_fields is set, return a dict
-            # if not, return a list of resource IDs
             if options.all_fields:
                 results['results'] = [r.as_dict() for r in results['results']]
             else:
@@ -262,9 +276,10 @@ class PackageSearchQuery(SearchQuery):
     def get_index(self,reference):
         query = {
             'rows': 1,
-            'q': 'name:"%s" OR id:"%s"' % (reference,reference),
+            'q': f'name:"{reference}" OR id:"{reference}"',
             'wt': 'json',
-            'fq': 'site_id:"%s"' % config.get('ckan.site_id')}
+            'fq': f"""site_id:"{config.get('ckan.site_id')}\"""",
+        }
 
         try:
             if query['q'].startswith('{!'):
@@ -281,7 +296,7 @@ class PackageSearchQuery(SearchQuery):
                               (query, e))
 
         if solr_response.hits == 0:
-            raise SearchError('Dataset not found in the search index: %s' % reference)
+            raise SearchError(f'Dataset not found in the search index: {reference}')
         else:
             return solr_response.docs[0]
 
@@ -303,8 +318,8 @@ class PackageSearchQuery(SearchQuery):
         assert isinstance(query, (dict, MultiDict))
         # check that query keys are valid
         if not set(query.keys()) <= VALID_SOLR_PARAMETERS:
-            invalid_params = [s for s in set(query.keys()) - VALID_SOLR_PARAMETERS]
-            raise SearchQueryError("Invalid search parameters: %s" % invalid_params)
+            invalid_params = list(set(query.keys()) - VALID_SOLR_PARAMETERS)
+            raise SearchQueryError(f"Invalid search parameters: {invalid_params}")
 
         # default query is to return all documents
         q = query.get('q')
@@ -313,12 +328,7 @@ class PackageSearchQuery(SearchQuery):
 
         # number of results
         rows_to_return = min(1000, int(query.get('rows', 10)))
-        if rows_to_return > 0:
-            # #1683 Work around problem of last result being out of order
-            #       in SOLR 1.4
-            rows_to_query = rows_to_return + 1
-        else:
-            rows_to_query = rows_to_return
+        rows_to_query = rows_to_return + 1 if rows_to_return > 0 else rows_to_return
         query['rows'] = rows_to_query
 
         fq = []
@@ -327,16 +337,17 @@ class PackageSearchQuery(SearchQuery):
         fq.extend(query.get('fq_list', []))
 
         # show only results from this CKAN instance
-        fq.append('+site_id:%s' % solr_literal(config.get('ckan.site_id')))
+        fq.append(f"+site_id:{solr_literal(config.get('ckan.site_id'))}")
 
         # filter for package status
-        if not '+state:' in query.get('fq', ''):
+        if '+state:' not in query.get('fq', ''):
             fq.append('+state:active')
 
         # only return things we should be able to see
         if permission_labels is not None:
-            fq.append('+permission_labels:(%s)' % ' OR '.join(
-                solr_literal(p) for p in permission_labels))
+            fq.append(
+                f"+permission_labels:({' OR '.join(solr_literal(p) for p in permission_labels)})"
+            )
         query['fq'] = fq
 
         # faceting
@@ -377,15 +388,15 @@ class PackageSearchQuery(SearchQuery):
             #
             if e.args and isinstance(e.args[0], str):
                 if "Can't determine a Sort Order" in e.args[0] or \
-                        "Can't determine Sort Order" in e.args[0] or \
-                        'Unknown sort order' in e.args[0]:
+                            "Can't determine Sort Order" in e.args[0] or \
+                            'Unknown sort order' in e.args[0]:
                     raise SearchQueryError('Invalid "sort" parameter')
             raise SearchError('SOLR returned an error running query: %r Error: %r' %
                               (query, e))
-        self.count = solr_response.hits
         self.results = solr_response.docs
 
 
+        self.count = solr_response.hits
         # #1683 Filter out the last row that is sometimes out of order
         self.results = self.results[:rows_to_return]
 
@@ -406,7 +417,7 @@ class PackageSearchQuery(SearchQuery):
         # get facets and convert facets list to a dict
         self.facets = solr_response.facets.get('facet_fields', {})
         for field, values in six.iteritems(self.facets):
-            self.facets[field] = dict(zip(values[0::2], values[1::2]))
+            self.facets[field] = dict(zip(values[::2], values[1::2]))
 
         return {'results': self.results, 'count': self.count}
 

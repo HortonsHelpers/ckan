@@ -83,7 +83,7 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
             return None
 
         pkg = meta.Session.query(cls).get(reference)
-        if pkg == None:
+        if pkg is None:
             pkg = cls.by_name(reference)
         return pkg
     # Todo: Make sure package names can't be changed to look like package IDs?
@@ -112,9 +112,8 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
         import ckan.model as model
         if tag in self.get_tags(tag.vocabulary):
             return
-        else:
-            package_tag = model.PackageTag(self, tag)
-            meta.Session.add(package_tag)
+        package_tag = model.PackageTag(self, tag)
+        meta.Session.add(package_tag)
 
 
     def add_tags(self, tags):
@@ -164,10 +163,9 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
         if vocab:
             query = query.filter(model.Tag.vocabulary_id == vocab.id)
         else:
-            query = query.filter(model.Tag.vocabulary_id == None)
+            query = query.filter(model.Tag.vocabulary_id is None)
         query = query.order_by(model.Tag.name)
-        tags = query.all()
-        return tags
+        return query.all()
 
     def remove_tag(self, tag):
         import ckan.model as model
@@ -179,18 +177,11 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
         meta.Session.commit()
 
     def isopen(self):
-        if self.license and self.license.isopen():
-            return True
-        return False
+        return bool(self.license and self.license.isopen())
 
     def get_average_rating(self):
-        total = 0
-        for rating in self.ratings:
-            total += rating.rating
-        if total == 0:
-            return None
-        else:
-            return total / len(self.ratings)
+        total = sum(rating.rating for rating in self.ratings)
+        return None if total == 0 else total / len(self.ratings)
 
     def as_dict(self, ref_package_by='name', ref_group_by='name'):
         _dict = domain_object.DomainObject.as_dict(self)
@@ -204,19 +195,18 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
         groups = [getattr(group, ref_group_by) for group in self.get_groups()]
         groups.sort()
         _dict['groups'] = groups
-        _dict['extras'] = {key: value for key, value in self.extras.items()}
+        _dict['extras'] = dict(self.extras.items())
         _dict['ratings_average'] = self.get_average_rating()
         _dict['ratings_count'] = len(self.ratings)
         _dict['resources'] = [res.as_dict(core_columns_only=False) \
-                              for res in self.resources]
-        site_url = config.get('ckan.site_url', None)
-        if site_url:
-            _dict['ckan_url'] = '%s/dataset/%s' % (site_url, self.name)
+                                  for res in self.resources]
+        if site_url := config.get('ckan.site_url', None):
+            _dict['ckan_url'] = f'{site_url}/dataset/{self.name}'
         _dict['relationships'] = [rel.as_dict(self, ref_package_by=ref_package_by) for rel in self.get_relationships()]
         _dict['metadata_modified'] = self.metadata_modified.isoformat() \
-            if self.metadata_modified else None
+                if self.metadata_modified else None
         _dict['metadata_created'] = self.metadata_created.isoformat() \
-            if self.metadata_created else None
+                if self.metadata_created else None
         import ckan.lib.helpers as h
         _dict['notes_rendered'] = h.render_markdown(self.notes)
         _dict['type'] = self.type or u'dataset'
@@ -242,9 +232,12 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
         else:
             raise KeyError('Package relationship type: %r' % type_)
 
-        rels = self.get_relationships(with_package=related_package,
-                                      type=type_, active=False, direction=direction)
-        if rels:
+        if rels := self.get_relationships(
+            with_package=related_package,
+            type=type_,
+            active=False,
+            direction=direction,
+        ):
             rel = rels[0]
             if comment:
                 rel.comment=comment
@@ -363,7 +356,7 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
         elif type(license) == dict:
             self.license_id = license['id']
         else:
-            msg = "Value not a license object or entity: %s" % repr(license)
+            msg = f"Value not a license object or entity: {repr(license)}"
             raise Exception(msg)
 
     license = property(get_license, set_license)
@@ -417,9 +410,9 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
             obj_rev_class = obj_class.__revision_class__
             # Query for object revisions related to this package
             obj_rev_query = meta.Session.query(obj_rev_class).\
-                            filter_by(package_id=self.id).\
-                            join('revision').\
-                            order_by(core.Revision.timestamp.desc())
+                                filter_by(package_id=self.id).\
+                                join('revision').\
+                                order_by(core.Revision.timestamp.desc())
             # Columns to include in the diff
             cols_to_diff = obj_class.revisioned_fields()
             cols_to_diff.remove('id')
@@ -432,23 +425,22 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
                 cols_to_diff.remove('key')
             # Iterate over each object ID
             # e.g. for PackageTag, iterate over Tag objects
-            related_obj_ids = set([related_obj.id for related_obj in obj_rev_query.all()])
+            related_obj_ids = {related_obj.id for related_obj in obj_rev_query.all()}
             for related_obj_id in related_obj_ids:
                 q = obj_rev_query.filter(obj_rev_class.id==related_obj_id)
                 to_obj_rev, from_obj_rev = super(Package, self).\
-                    get_obj_revisions_to_diff(
+                        get_obj_revisions_to_diff(
                     q, to_revision, from_revision)
                 for col in cols_to_diff:
                     values = [getattr(obj_rev, col) if obj_rev else '' for obj_rev in (from_obj_rev, to_obj_rev)]
-                    value_diff = self._differ(*values)
-                    if value_diff:
-                        if obj_class.__name__ == 'PackageTag':
-                            display_id = to_obj_rev.tag.name
-                        elif obj_class.__name__ == 'PackageExtra':
+                    if value_diff := self._differ(*values):
+                        if obj_class.__name__ == 'PackageExtra':
                             display_id = to_obj_rev.key
+                        elif obj_class.__name__ == 'PackageTag':
+                            display_id = to_obj_rev.tag.name
                         else:
                             display_id = related_obj_id[:4]
-                        key = '%s-%s-%s' % (obj_class.__name__, display_id, col)
+                        key = f'{obj_class.__name__}-{display_id}-{col}'
                         results[key] = value_diff
         return results
 
@@ -529,8 +521,9 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
         try:
             d = {'package': dictization.table_dictize(self,
                 context={'model': ckan.model})}
-            return activity.Activity(user_id, self.id, revision.id,
-                    "%s package" % activity_type, d)
+            return activity.Activity(
+                user_id, self.id, revision.id, f"{activity_type} package", d
+            )
         except ckan.logic.NotFound:
             # This happens if this package is being purged and therefore has no
             # current revision.
@@ -569,17 +562,15 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
         if isinstance(user_or_ip, User):
             user = user_or_ip
             rating_query = meta.Session.query(Rating)\
-                               .filter_by(package=self, user=user)
+                                   .filter_by(package=self, user=user)
         else:
             ip = user_or_ip
             rating_query = meta.Session.query(Rating)\
-                               .filter_by(package=self, user_ip_address=ip)
+                                   .filter_by(package=self, user_ip_address=ip)
 
         try:
             rating = float(rating)
-        except TypeError:
-            raise RatingValueException
-        except ValueError:
+        except (TypeError, ValueError):
             raise RatingValueException
         if rating > MAX_RATING or rating < MIN_RATING:
             raise RatingValueException

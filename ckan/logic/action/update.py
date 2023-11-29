@@ -278,11 +278,7 @@ def package_update(context, data_dict):
         schema = package_plugin.update_package_schema()
 
     if 'api_version' not in context:
-        # check_data_dict() is deprecated. If the package_plugin has a
-        # check_data_dict() we'll call it, if it doesn't have the method we'll
-        # do nothing.
-        check_data_dict = getattr(package_plugin, 'check_data_dict', None)
-        if check_data_dict:
+        if check_data_dict := getattr(package_plugin, 'check_data_dict', None):
             try:
                 package_plugin.check_data_dict(data_dict, schema)
             except TypeError:
@@ -338,7 +334,7 @@ def package_update(context, data_dict):
     if not context.get('defer_commit'):
         model.repo.commit()
 
-    log.debug('Updated object %s' % pkg.name)
+    log.debug(f'Updated object {pkg.name}')
 
     return_id_only = context.get('return_id_only', False)
 
@@ -347,10 +343,11 @@ def package_update(context, data_dict):
 
     # we could update the dataset so we should still be able to read it.
     context['ignore_auth'] = True
-    output = data_dict['id'] if return_id_only \
-            else _get_action('package_show')(context, {'id': data_dict['id']})
-
-    return output
+    return (
+        data_dict['id']
+        if return_id_only
+        else _get_action('package_show')(context, {'id': data_dict['id']})
+    )
 
 def package_resource_reorder(context, data_dict):
     '''Reorder resources against datasets.  If only partial resource ids are
@@ -410,9 +407,9 @@ def _update_package_relationship(relationship, comment, context):
         relationship.comment = comment
         if not context.get('defer_commit'):
             model.repo.commit_and_remove()
-    rel_dict = relationship.as_dict(package=relationship.subject,
-                                    ref_package_by=ref_package_by)
-    return rel_dict
+    return relationship.as_dict(
+        package=relationship.subject, ref_package_by=ref_package_by
+    )
 
 
 def package_relationship_update(context, data_dict):
@@ -543,20 +540,12 @@ def _group_or_org_update(context, data_dict, is_org=False):
     for item in plugins.PluginImplementations(plugin_type):
         item.edit(group)
 
-    if is_org:
-        activity_type = 'changed organization'
-    else:
-        activity_type = 'changed group'
-
+    activity_type = 'changed organization' if is_org else 'changed group'
     activity_dict = {
             'user_id': model.User.by_name(user.decode('utf8')).id,
             'object_id': group.id,
             'activity_type': activity_type,
             }
-    # Handle 'deleted' groups.
-    # When the user marks a group as deleted this comes through here as
-    # a 'changed' group activity. We detect this and change it to a 'deleted'
-    # activity.
     if group.state == u'deleted':
         if session.query(ckan.model.Activity).filter_by(
                 object_id=group.id, activity_type='deleted').all():
@@ -797,12 +786,13 @@ def task_status_update_many(context, data_dict):
     :rtype: list of dictionaries
 
     '''
-    results = []
     model = context['model']
     deferred = context.get('defer_commit')
     context['defer_commit'] = True
-    for data in data_dict['data']:
-        results.append(_get_action('task_status_update')(context, data))
+    results = [
+        _get_action('task_status_update')(context, data)
+        for data in data_dict['data']
+    ]
     if not deferred:
         context.pop('defer_commit')
     if not context.get('defer_commit'):
@@ -888,7 +878,7 @@ def term_translation_update_many(context, data_dict):
 
     model.Session.commit()
 
-    return {'success': '%s rows updated' % (num + 1)}
+    return {'success': f'{num + 1} rows updated'}
 
 
 def vocabulary_update(context, data_dict):
@@ -1075,8 +1065,8 @@ def _bulk_update_dataset(context, data_dict, update_dict):
             'q': q,
             'fl': 'data_dict',
             'wt': 'json',
-            'fq': 'site_id:"%s"' % config.get('ckan.site_id'),
-            'rows': BATCH_SIZE
+            'fq': f"""site_id:"{config.get('ckan.site_id')}\"""",
+            'rows': BATCH_SIZE,
         }
 
         for result in query.run(q)['results']:
@@ -1088,7 +1078,7 @@ def _bulk_update_dataset(context, data_dict, update_dict):
     count = 0
     q = []
     for id in datasets:
-        q.append('id:"%s"' % (id))
+        q.append(f'id:"{id}"')
         count += 1
         if count % BATCH_SIZE == 0:
             process_solr(' OR '.join(q))
@@ -1195,8 +1185,7 @@ def config_option_update(context, data_dict):
 
     provided_options = data_dict.keys()
 
-    unsupported_options = set(provided_options) - set(available_options)
-    if unsupported_options:
+    if unsupported_options := set(provided_options) - set(available_options):
         msg = 'Configuration option(s) \'{0}\' can not be updated'.format(
               ' '.join(list(unsupported_options)))
 

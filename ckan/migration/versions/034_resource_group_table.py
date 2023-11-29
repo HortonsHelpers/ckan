@@ -68,7 +68,7 @@ def upgrade(migrate_engine):
         Column('revision_id', UnicodeText, ForeignKey('revision.id'), primary_key=True),
         Column('continuity_id', UnicodeText, ForeignKey('resource_group.id'))
         )
-    
+
     resource_count = migrate_engine.execute('''select count(*) from package_resource''').first()[0]
     package_count = migrate_engine.execute('''select count(*) from package''').first()[0]
 
@@ -109,34 +109,36 @@ ALTER TABLE resource
 ''')
 
 
-    # do data transfer
-    # give resource group a hashed version of package uuid 
-    # so that we can use the same hash calculation on  
-    # the resource and resource revision table
-    migrate_engine.execute('''
+        # do data transfer
+        # give resource group a hashed version of package uuid 
+        # so that we can use the same hash calculation on  
+        # the resource and resource revision table
+        migrate_engine.execute('''
 insert into resource_group 
     select 
         %s, id, 'default', null, null, state, revision_id
     from
         package;
 ''' %  make_new_uuid("id")
-)
+    )
 
-    migrate_engine.execute('''
+        migrate_engine.execute('''
 insert into resource_group_revision
     select 
         id, package_id, 'default', null, null, state, revision_id, id
     from
         resource_group;
 '''
-)
+    )
 
     ## update resource table with new ids generated from the
-    migrate_engine.execute('update resource set resource_group_id = %s' 
-                           % make_new_uuid('resource_group_id'))
+    migrate_engine.execute(
+        f"update resource set resource_group_id = {make_new_uuid('resource_group_id')}"
+    )
 
-    migrate_engine.execute('update resource_revision set resource_group_id = %s' 
-                           % make_new_uuid('resource_group_id'))
+    migrate_engine.execute(
+        f"update resource_revision set resource_group_id = {make_new_uuid('resource_group_id')}"
+    )
 
 ##add back contraints
 
@@ -179,8 +181,8 @@ ALTER TABLE resource_revision
                                      select id from package) sub
                                      ''').first()[0]
 
-    assert resource_count_after == resource_count 
-    assert resource_group_after == package_count 
+    assert resource_count_after == resource_count
+    assert resource_group_after == package_count
     assert package_count_after == package_count 
 
     ## this makes sure all uuids are unique (union dedupes)

@@ -64,8 +64,7 @@ class Tag(domain_object.DomainObject):
         '''
         query = meta.Session.query(Tag).filter(Tag.id==tag_id)
         query = query.autoflush(autoflush)
-        tag = query.first()
-        return tag
+        return query.first()
 
     @classmethod
     def by_name(cls, name, vocab=None, autoflush=True):
@@ -92,11 +91,13 @@ class Tag(domain_object.DomainObject):
             query = meta.Session.query(Tag).filter(Tag.name==name).filter(
                 Tag.vocabulary_id==vocab.id)
         else:
-            query = meta.Session.query(Tag).filter(Tag.name==name).filter(
-                Tag.vocabulary_id==None)
+            query = (
+                meta.Session.query(Tag)
+                .filter(Tag.name == name)
+                .filter(Tag.vocabulary_id is None)
+            )
         query = query.autoflush(autoflush)
-        tag = query.first()
-        return tag
+        return query.first()
 
     @classmethod
     def get(cls, tag_id_or_name, vocab_id_or_name=None):
@@ -123,20 +124,17 @@ class Tag(domain_object.DomainObject):
         '''
         # First try to get the tag by ID.
         tag = Tag.by_id(tag_id_or_name)
-        if tag:
-            return tag
-        else:
+        if not tag:
             # If that didn't work, try to get the tag by name and vocabulary.
             if vocab_id_or_name:
                 vocab = vocabulary.Vocabulary.get(vocab_id_or_name)
                 if vocab is None:
                     # The user specified an invalid vocab.
-                    raise ckan.logic.NotFound("could not find vocabulary '%s'"
-                            % vocab_id_or_name)
+                    raise ckan.logic.NotFound(f"could not find vocabulary '{vocab_id_or_name}'")
             else:
                 vocab = None
             tag = Tag.by_name(tag_id_or_name, vocab=vocab)
-            return tag
+        return tag
         # Todo: Make sure tag names can't be changed to look like tag IDs?
 
     @classmethod
@@ -190,11 +188,10 @@ class Tag(domain_object.DomainObject):
             vocab = vocabulary.Vocabulary.get(vocab_id_or_name)
             if vocab is None:
                 # The user specified an invalid vocab.
-                raise ckan.logic.NotFound("could not find vocabulary '%s'"
-                        % vocab_id_or_name)
+                raise ckan.logic.NotFound(f"could not find vocabulary '{vocab_id_or_name}'")
             query = meta.Session.query(Tag).filter(Tag.vocabulary_id==vocab.id)
         else:
-            query = meta.Session.query(Tag).filter(Tag.vocabulary_id == None)
+            query = meta.Session.query(Tag).filter(Tag.vocabulary_id is None)
             query = query.distinct().join(PackageTag)
             query = query.filter_by(state='active')
         return query
@@ -211,11 +208,10 @@ class Tag(domain_object.DomainObject):
         q = q.filter_by(tag_id=self.id)
         q = q.filter_by(state='active')
         q = q.order_by(_package.Package.name)
-        packages = q.all()
-        return packages
+        return q.all()
 
     def __repr__(self):
-        return '<Tag %s>' % self.name
+        return f'<Tag {self.name}>'
 
 class PackageTag(vdm.sqlalchemy.RevisionedObjectMixin,
         vdm.sqlalchemy.StatefulObjectMixin,
@@ -228,7 +224,7 @@ class PackageTag(vdm.sqlalchemy.RevisionedObjectMixin,
             setattr(self, k, v)
 
     def __repr__(self):
-        s = u'<PackageTag package=%s tag=%s>' % (self.package.name, self.tag.name)
+        s = f'<PackageTag package={self.package.name} tag={self.tag.name}>'
         return s.encode('utf8')
 
     def activity_stream_detail(self, activity_id, activity_type):

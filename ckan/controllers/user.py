@@ -299,10 +299,9 @@ class UserController(base.BaseController):
         try:
             old_data = get_action('user_show')(context, data_dict)
 
-            schema = self._db_to_edit_form_schema()
-            if schema:
+            if schema := self._db_to_edit_form_schema():
                 old_data, errors = \
-                    dictization_functions.validate(old_data, schema, context)
+                        dictization_functions.validate(old_data, schema, context)
 
             c.display_name = old_data.get('display_name')
             c.user_name = old_data.get('name')
@@ -338,10 +337,7 @@ class UserController(base.BaseController):
 
     def _save_edit(self, id, context):
         try:
-            if id in (c.userobj.id, c.userobj.name):
-                current_user = True
-            else:
-                current_user = False
+            current_user = id in (c.userobj.id, c.userobj.name)
             old_username = c.userobj.name
 
             data_dict = logic.clean_dict(unflatten(
@@ -352,7 +348,7 @@ class UserController(base.BaseController):
             email_changed = data_dict['email'] != c.userobj.email
 
             if (data_dict['password1'] and data_dict['password2']) \
-                    or email_changed:
+                        or email_changed:
                 identity = {'login': c.user,
                             'password': data_dict['old_password']}
                 auth = authenticator.UsernamePasswordAuthenticator()
@@ -395,20 +391,16 @@ class UserController(base.BaseController):
         if 'error' in request.params:
             h.flash_error(request.params['error'])
 
-        if not c.user:
-            came_from = request.params.get('came_from')
-            if not came_from:
-                came_from = h.url_for(controller='user', action='logged_in')
-            c.login_handler = h.url_for(
-                self._get_repoze_handler('login_handler_path'),
-                came_from=came_from)
-            if error:
-                vars = {'error_summary': {'': error}}
-            else:
-                vars = {}
-            return render('user/login.html', extra_vars=vars)
-        else:
+        if c.user:
             return render('user/logout_first.html')
+        came_from = request.params.get('came_from')
+        if not came_from:
+            came_from = h.url_for(controller='user', action='logged_in')
+        c.login_handler = h.url_for(
+            self._get_repoze_handler('login_handler_path'),
+            came_from=came_from)
+        vars = {'error_summary': {'': error}} if error else {}
+        return render('user/login.html', extra_vars=vars)
 
     def logged_in(self):
         # redirect if needed
@@ -425,12 +417,11 @@ class UserController(base.BaseController):
             return self.me()
         else:
             err = _('Login failed. Bad username or password.')
-            if asbool(config.get('ckan.legacy_templates', 'false')):
-                h.flash_error(err)
-                h.redirect_to(controller='user',
-                              action='login', came_from=came_from)
-            else:
+            if not asbool(config.get('ckan.legacy_templates', 'false')):
                 return self.login(error=err)
+            h.flash_error(err)
+            h.redirect_to(controller='user',
+                          action='login', came_from=came_from)
 
     def logout(self):
         # Do any plugin logout stuff
@@ -475,27 +466,23 @@ class UserController(base.BaseController):
                     user_objs.append(context['user_obj'])
                 except NotFound:
                     pass
-            else:
-                user_list = logic.get_action(u'user_list')(context, {
-                    u'email': id
-                })
-                if user_list:
-                    # send reset emails for *all* user accounts with this email
-                    # (otherwise we'd have to silently fail - we can't tell the
-                    # user, as that would reveal the existence of accounts with
-                    # this email address)
-                    for user_dict in user_list:
-                        logic.get_action(u'user_show')(
-                            context, {u'id': user_dict[u'id']})
-                        user_objs.append(context[u'user_obj'])
+            elif user_list := logic.get_action(u'user_list')(
+                context, {u'email': id}
+            ):
+                # send reset emails for *all* user accounts with this email
+                # (otherwise we'd have to silently fail - we can't tell the
+                # user, as that would reveal the existence of accounts with
+                # this email address)
+                for user_dict in user_list:
+                    logic.get_action(u'user_show')(
+                        context, {u'id': user_dict[u'id']})
+                    user_objs.append(context[u'user_obj'])
 
             if not user_objs:
-                log.info(u'User requested reset link for unknown user: {}'
-                         .format(id))
+                log.info(f'User requested reset link for unknown user: {id}')
 
             for user_obj in user_objs:
-                log.info(u'Emailing reset link to user: {}'
-                         .format(user_obj.name))
+                log.info(f'Emailing reset link to user: {user_obj.name}')
                 try:
                     mailer.send_reset_link(user_obj)
                 except mailer.MailerException as e:
@@ -576,10 +563,10 @@ class UserController(base.BaseController):
         password1 = request.params.getone('password1')
         password2 = request.params.getone('password2')
         if (password1 is not None and password1 != ''):
-            if not len(password1) >= 4:
+            if len(password1) < 4:
                 raise ValueError(_('Your password must be 4 '
                                  'characters or longer.'))
-            elif not password1 == password2:
+            elif password1 != password2:
                 raise ValueError(_('The passwords you entered'
                                  ' do not match.'))
             return password1

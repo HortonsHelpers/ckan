@@ -73,9 +73,7 @@ class User(vdm.sqlalchemy.StatefulObjectMixin,
 
     @property
     def email_hash(self):
-        e = ''
-        if self.email:
-            e = self.email.strip().lower().encode('utf8')
+        e = self.email.strip().lower().encode('utf8') if self.email else ''
         return md5(e).hexdigest()
 
     def get_reference_preferred_for_uri(self):
@@ -85,11 +83,7 @@ class User(vdm.sqlalchemy.StatefulObjectMixin,
         given, based on readability.
         The result is not escaped (will get done in url_for/redirect_to).
         '''
-        if self.name:
-            ref = self.name
-        else:
-            ref = self.id
-        return ref
+        return self.name if self.name else self.id
 
     def _set_password(self, password):
         '''Hash using pbkdf2
@@ -150,28 +144,25 @@ class User(vdm.sqlalchemy.StatefulObjectMixin,
 
         if not pbkdf2_sha512.identify(self.password):
             return self._verify_and_upgrade_from_sha1(password)
-        else:
-            current_hash = pbkdf2_sha512.from_string(self.password)
-            if (current_hash.rounds < pbkdf2_sha512.default_rounds or
-                len(current_hash.salt) < pbkdf2_sha512.default_salt_size):
-
-                return self._verify_and_upgrade_pbkdf2(password)
-            else:
-                return pbkdf2_sha512.verify(password, self.password)
+        current_hash = pbkdf2_sha512.from_string(self.password)
+        return (
+            self._verify_and_upgrade_pbkdf2(password)
+            if (
+                current_hash.rounds < pbkdf2_sha512.default_rounds
+                or len(current_hash.salt) < pbkdf2_sha512.default_salt_size
+            )
+            else pbkdf2_sha512.verify(password, self.password)
+        )
 
     password = property(_get_password, _set_password)
 
     @classmethod
     def check_name_valid(cls, name):
-        if not name \
-            or not len(name.strip()) \
-            or not cls.VALID_NAME.match(name):
-            return False
-        return True
+        return bool(name and len(name.strip()) and cls.VALID_NAME.match(name))
 
     @classmethod
     def check_name_available(cls, name):
-        return cls.by_name(name) == None
+        return cls.by_name(name) is None
 
     def as_dict(self):
         _dict = domain_object.DomainObject.as_dict(self)
@@ -279,7 +270,7 @@ class User(vdm.sqlalchemy.StatefulObjectMixin,
             query = meta.Session.query(cls)
         else:
             query = sqlalchemy_query
-        qstr = '%' + querystr + '%'
+        qstr = f'%{querystr}%'
         filters = [
             cls.name.ilike(qstr),
             cls.fullname.ilike(qstr),

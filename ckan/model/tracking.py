@@ -42,8 +42,11 @@ class TrackingSummary(domain_object.DomainObject):
     @classmethod
     def get_for_resource(cls, url):
         obj = meta.Session.query(cls).autoflush(False)
-        data = obj.filter_by(url=url).order_by(text('tracking_date desc')).first()
-        if data:
+        if (
+            data := obj.filter_by(url=url)
+            .order_by(text('tracking_date desc'))
+            .first()
+        ):
             return {'total' : data.running_total,
                     'recent': data.recent_views}
 

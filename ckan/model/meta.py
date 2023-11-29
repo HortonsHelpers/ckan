@@ -30,9 +30,7 @@ class CkanCacheExtension(SessionExtension):
             oc_list = oc['new']
             oc_list.update(oc['changed'])
             oc_list.update(oc['deleted'])
-            objs = set()
-            for item in oc_list:
-                objs.add(item.__class__.__name__)
+            objs = {item.__class__.__name__ for item in oc_list}
 
 
 class CkanSessionExtension(SessionExtension):

@@ -34,12 +34,12 @@ def resource_delete(context, data_dict):
         raise logic.NotFound(_('No package found for this resource, cannot check auth.'))
 
     pkg_dict = {'id': pkg.id}
-    authorized = authz.is_authorized('package_delete', context, pkg_dict).get('success')
-
-    if not authorized:
-        return {'success': False, 'msg': _('User %s not authorized to delete resource %s') % (user, resource.id)}
-    else:
+    if authorized := authz.is_authorized(
+        'package_delete', context, pkg_dict
+    ).get('success'):
         return {'success': True}
+    else:
+        return {'success': False, 'msg': _('User %s not authorized to delete resource %s') % (user, resource.id)}
 
 
 def resource_view_delete(context, data_dict):
@@ -51,11 +51,11 @@ def resource_view_delete(context, data_dict):
 
     resource_id = data_dict.get('resource_id')
     if not resource_id:
-        resource_view = context['model'].ResourceView.get(data_dict['id'])
-        if not resource_view:
-            raise logic.NotFound(_('Resource view not found, cannot check auth.'))
-        resource_id = resource_view.resource_id
+        if resource_view := context['model'].ResourceView.get(data_dict['id']):
+            resource_id = resource_view.resource_id
 
+        else:
+            raise logic.NotFound(_('Resource view not found, cannot check auth.'))
     return authz.is_authorized('resource_delete', context, {'id': resource_id})
 
 
@@ -67,12 +67,12 @@ def package_relationship_delete(context, data_dict):
     user = context['user']
     relationship = context['relationship']
 
-    # If you can create this relationship the you can also delete it
-    authorized = authz.is_authorized_boolean('package_relationship_create', context, data_dict)
-    if not authorized:
-        return {'success': False, 'msg': _('User %s not authorized to delete relationship %s') % (user ,relationship.id)}
-    else:
+    if authorized := authz.is_authorized_boolean(
+        'package_relationship_create', context, data_dict
+    ):
         return {'success': True}
+    else:
+        return {'success': False, 'msg': _('User %s not authorized to delete relationship %s') % (user ,relationship.id)}
 
 def group_delete(context, data_dict):
     group = get_group_object(context, data_dict)
@@ -80,12 +80,12 @@ def group_delete(context, data_dict):
     if not authz.check_config_permission('user_delete_groups'):
         return {'success': False,
             'msg': _('User %s not authorized to delete groups') % user}
-    authorized = authz.has_user_permission_for_group_or_org(
-        group.id, user, 'delete')
-    if not authorized:
-        return {'success': False, 'msg': _('User %s not authorized to delete group %s') % (user ,group.id)}
-    else:
+    if authorized := authz.has_user_permission_for_group_or_org(
+        group.id, user, 'delete'
+    ):
         return {'success': True}
+    else:
+        return {'success': False, 'msg': _('User %s not authorized to delete group %s') % (user ,group.id)}
 
 def group_purge(context, data_dict):
     # Only sysadmins are authorized to purge groups.
@@ -101,12 +101,12 @@ def organization_delete(context, data_dict):
     if not authz.check_config_permission('user_delete_organizations'):
         return {'success': False,
             'msg': _('User %s not authorized to delete organizations') % user}
-    authorized = authz.has_user_permission_for_group_or_org(
-        group.id, user, 'delete')
-    if not authorized:
-        return {'success': False, 'msg': _('User %s not authorized to delete organization %s') % (user ,group.id)}
-    else:
+    if authorized := authz.has_user_permission_for_group_or_org(
+        group.id, user, 'delete'
+    ):
         return {'success': True}
+    else:
+        return {'success': False, 'msg': _('User %s not authorized to delete organization %s') % (user ,group.id)}
 
 def revision_undelete(context, data_dict):
     return {'success': False, 'msg': 'Not implemented yet in the auth refactor'}

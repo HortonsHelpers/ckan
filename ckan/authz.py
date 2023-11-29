@@ -58,11 +58,11 @@ class AuthFunctions:
         module_root = 'ckan.logic.auth'
 
         for auth_module_name in ['get', 'create', 'update', 'delete', 'patch']:
-            module_path = '%s.%s' % (module_root, auth_module_name,)
+            module_path = f'{module_root}.{auth_module_name}'
             try:
                 module = __import__(module_path)
             except ImportError:
-                log.debug('No auth module for action "%s"' % auth_module_name)
+                log.debug(f'No auth module for action "{auth_module_name}"')
                 continue
 
             for part in module_path.split('.')[1:]:
@@ -70,16 +70,8 @@ class AuthFunctions:
 
             for key, v in module.__dict__.items():
                 if not key.startswith('_'):
-                    # Whitelist all auth functions defined in
-                    # logic/auth/get.py as not requiring an authorized user,
-                    # as well as ensuring that the rest do. In both cases, do
-                    # nothing if a decorator has already been used to define
-                    # the behaviour
                     if not hasattr(v, 'auth_allow_anonymous_access'):
-                        if auth_module_name == 'get':
-                            v.auth_allow_anonymous_access = True
-                        else:
-                            v.auth_allow_anonymous_access = False
+                        v.auth_allow_anonymous_access = auth_module_name == 'get'
                     self._functions[key] = v
 
         # Then overwrite them with any specific ones in the plugins:
@@ -108,12 +100,7 @@ class AuthFunctions:
                     name))
             # create the chain of functions in the correct order
             for func in reversed(func_list):
-                if name in fetched_auth_functions:
-                    prev_func = fetched_auth_functions[name]
-                else:
-                    # fallback to chaining off the builtin auth function
-                    prev_func = self._functions[name]
-
+                prev_func = fetched_auth_functions.get(name, self._functions[name])
                 new_func = (functools.partial(func, prev_func))
                 # persisting attributes to the new partial function
                 for attribute, value in func.__dict__.iteritems():
@@ -187,36 +174,32 @@ def is_authorized(action, context, data_dict=None):
     if context.get('ignore_auth'):
         return {'success': True}
 
-    auth_function = _AuthFunctions.get(action)
-    if auth_function:
-        username = context.get('user')
-        user = _get_user(username)
+    if not (auth_function := _AuthFunctions.get(action)):
+        raise ValueError(_(f'Authorization function not found: {action}'))
+    username = context.get('user')
+    if user := _get_user(username):
+        # deleted users are always unauthorized
+        if user.is_deleted():
+            return {'success': False}
+        # sysadmins can do anything unless the auth_sysadmins_check
+        # decorator was used in which case they are treated like all other
+        # users.
+        elif user.sysadmin:
+            if not getattr(auth_function, 'auth_sysadmins_check', False):
+                return {'success': True}
 
-        if user:
-            # deleted users are always unauthorized
-            if user.is_deleted():
-                return {'success': False}
-            # sysadmins can do anything unless the auth_sysadmins_check
-            # decorator was used in which case they are treated like all other
-            # users.
-            elif user.sysadmin:
-                if not getattr(auth_function, 'auth_sysadmins_check', False):
-                    return {'success': True}
+    # If the auth function is flagged as not allowing anonymous access,
+    # and an existing user object is not provided in the context, deny
+    # access straight away
+    if not getattr(auth_function, 'auth_allow_anonymous_access', False) \
+       and not context.get('auth_user_obj'):
+        return {
+            'success': False,
+            'msg': 'Action {0} requires an authenticated user'.format(
+                action)
+        }
 
-        # If the auth function is flagged as not allowing anonymous access,
-        # and an existing user object is not provided in the context, deny
-        # access straight away
-        if not getattr(auth_function, 'auth_allow_anonymous_access', False) \
-           and not context.get('auth_user_obj'):
-            return {
-                'success': False,
-                'msg': 'Action {0} requires an authenticated user'.format(
-                    action)
-            }
-
-        return auth_function(context, data_dict)
-    else:
-        raise ValueError(_('Authorization function not found: %s' % action))
+    return auth_function(context, data_dict)
 
 
 # these are the permissions that roles have
@@ -241,23 +224,17 @@ def _trans_role_member():
 
 def trans_role(role):
     module = sys.modules[__name__]
-    return getattr(module, '_trans_role_%s' % role)()
+    return getattr(module, f'_trans_role_{role}')()
 
 
 def roles_list():
     ''' returns list of roles for forms '''
-    roles = []
-    for role in ROLE_PERMISSIONS:
-        roles.append(dict(text=trans_role(role), value=role))
-    return roles
+    return [dict(text=trans_role(role), value=role) for role in ROLE_PERMISSIONS]
 
 
 def roles_trans():
     ''' return dict of roles with translation '''
-    roles = {}
-    for role in ROLE_PERMISSIONS:
-        roles[role] = trans_role(role)
-    return roles
+    return {role: trans_role(role) for role in ROLE_PERMISSIONS}
 
 
 def get_roles_with_permission(permission):
@@ -366,9 +343,7 @@ def has_user_permission_for_some_org(user_name, permission):
         .filter(model.Member.state == 'active') \
         .filter(model.Member.capacity.in_(roles)) \
         .filter(model.Member.table_id == user_id)
-    group_ids = []
-    for row in q.all():
-        group_ids.append(row.group_id)
+    group_ids = [row.group_id for row in q.all()]
     # if not in any groups has no permissions
     if not group_ids:
         return False
@@ -391,8 +366,7 @@ def get_user_id_for_username(user_name, allow_none=False):
     except TypeError:
         # c is not available
         pass
-    user = model.User.get(user_name)
-    if user:
+    if user := model.User.get(user_name):
         return user.id
     if allow_none:
         return None
@@ -437,7 +411,7 @@ def check_config_permission(permission):
 
     default_value = CONFIG_PERMISSIONS_DEFAULTS.get(key)
 
-    config_key = 'ckan.auth.' + key
+    config_key = f'ckan.auth.{key}'
 
     value = config.get(config_key, default_value)
 
@@ -473,6 +447,4 @@ def auth_is_anon_user(context):
         See ckan/lib/base.py:232 for pylons context object logic
     '''
     context_user = context.get('user')
-    is_anon_user = not bool(context_user)
-
-    return is_anon_user
+    return not bool(context_user)

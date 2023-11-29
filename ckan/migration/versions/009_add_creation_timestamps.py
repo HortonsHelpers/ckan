@@ -15,7 +15,7 @@ def upgrade(migrate_engine):
     # Use sql instead of migrate.changeset because user and group are sql
     # reserved words and migrate doesn't quote them.
     for domain_obj_name in domain_obj_names:
-        sql = 'ALTER TABLE "%s" ADD created TIMESTAMP WITHOUT TIME ZONE' % domain_obj_name
+        sql = f'ALTER TABLE "{domain_obj_name}" ADD created TIMESTAMP WITHOUT TIME ZONE'
         migrate_engine.execute(sql)
 
     now = datetime.now()

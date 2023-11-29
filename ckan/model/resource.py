@@ -86,7 +86,7 @@ class Resource(vdm.sqlalchemy.RevisionedObjectMixin,
             if value is not None:
                 setattr(self, field, value)
         if kwargs:
-            raise TypeError('unexpected keywords %s' % kwargs)
+            raise TypeError(f'unexpected keywords {kwargs}')
 
     def as_dict(self, core_columns_only=False):
         _dict = OrderedDict()
@@ -146,8 +146,11 @@ class Resource(vdm.sqlalchemy.RevisionedObjectMixin,
 
         :rtype: list of ckan.model.Resource objects
         '''
-        query = meta.Session.query(cls).outerjoin(ckan.model.ResourceView) \
-                    .filter(ckan.model.ResourceView.id == None)
+        query = (
+            meta.Session.query(cls)
+            .outerjoin(ckan.model.ResourceView)
+            .filter(ckan.model.ResourceView.id is None)
+        )
 
         if formats:
             lowercase_formats = [f.lower() for f in formats]
@@ -223,8 +226,7 @@ class DictProxy(object):
         if not obj:
             return self
 
-        proxied_dict = getattr(obj, self.target_dict)
-        if proxied_dict:
+        if proxied_dict := getattr(obj, self.target_dict):
             return proxied_dict.get(self.target_key)
 
     def __set__(self, obj, value):

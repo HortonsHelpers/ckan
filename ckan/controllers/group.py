@@ -114,13 +114,8 @@ class GroupController(base.BaseController):
         """
         parts = [x for x in request.path.split('/') if x]
 
-        idx = -1
-        if expecting_name:
-            idx = -2
-
-        gt = parts[idx]
-
-        return gt
+        idx = -2 if expecting_name else -1
+        return parts[idx]
 
     def _ensure_controller_matches_group_type(self, id):
         group = model.Group.get(id)
@@ -239,12 +234,12 @@ class GroupController(base.BaseController):
         q = c.q = request.params.get('q', '')
         # Search within group
         if c.group_dict.get('is_organization'):
-            fq = 'owner_org:"%s"' % c.group_dict.get('id')
+            fq = f"""owner_org:"{c.group_dict.get('id')}\""""
         else:
-            fq = 'groups:"%s"' % c.group_dict.get('name')
+            fq = f"""groups:"{c.group_dict.get('name')}\""""
 
         c.description_formatted = \
-            h.render_markdown(c.group_dict.get('description'))
+                h.render_markdown(c.group_dict.get('description'))
 
         context['return_query'] = True
 
@@ -261,7 +256,7 @@ class GroupController(base.BaseController):
             url = h.url_for(controller=controller, action=action, id=id)
             params = [(k, v.encode('utf-8') if isinstance(v, string_types)
                        else str(v)) for k, v in params]
-            return url + u'?' + urlencode(params)
+            return f'{url}?{urlencode(params)}'
 
         def drill_down_url(**by):
             return h.add_url_param(alternative_url=None,
@@ -290,10 +285,10 @@ class GroupController(base.BaseController):
             search_extras = {}
             for (param, value) in request.params.items():
                 if param not in ['q', 'page', 'sort'] \
-                        and len(value) and not param.startswith('_'):
+                            and len(value) and not param.startswith('_'):
                     if not param.startswith('ext_'):
                         c.fields.append((param, value))
-                        q += ' %s: "%s"' % (param, value)
+                        q += f' {param}: "{value}"'
                         if param not in c.fields_grouped:
                             c.fields_grouped[param] = [value]
                         else:
@@ -331,8 +326,7 @@ class GroupController(base.BaseController):
                 'extras': search_extras
             }
 
-            context_ = dict((k, v) for (k, v) in context.items()
-                            if k != 'schema')
+            context_ = {k: v for (k, v) in context.items() if k != 'schema'}
             query = get_action('package_search')(context_, data_dict)
 
             c.page = h.Page(
@@ -348,8 +342,11 @@ class GroupController(base.BaseController):
             c.search_facets = query['search_facets']
             c.search_facets_limits = {}
             for facet in c.search_facets.keys():
-                limit = int(request.params.get('_%s_limit' % facet,
-                            config.get('search.facets.default', 10)))
+                limit = int(
+                    request.params.get(
+                        f'_{facet}_limit', config.get('search.facets.default', 10)
+                    )
+                )
                 c.search_facets_limits[facet] = limit
             c.page.items = query['results']
 
@@ -401,8 +398,11 @@ class GroupController(base.BaseController):
             raise Exception('Must be an organization')
 
         # use different form names so that ie7 can be detected
-        form_names = set(["bulk_action.public", "bulk_action.delete",
-                          "bulk_action.private"])
+        form_names = {
+            "bulk_action.public",
+            "bulk_action.delete",
+            "bulk_action.private",
+        }
         actions_in_form = set(request.params.keys())
         actions = form_names.intersection(actions_in_form)
         # If no action then just show the datasets
@@ -423,13 +423,9 @@ class GroupController(base.BaseController):
             # normal good browser form submission
             action = actions.pop().split('.')[-1]
 
-        # process the action first find the datasets to perform the action on.
-        # they are prefixed by dataset_ in the form data
-        datasets = []
-        for param in request.params:
-            if param.startswith('dataset_'):
-                datasets.append(param[8:])
-
+        datasets = [
+            param[8:] for param in request.params if param.startswith('dataset_')
+        ]
         action_functions = {
             'private': 'bulk_update_private',
             'public': 'bulk_update_public',
@@ -442,7 +438,7 @@ class GroupController(base.BaseController):
             get_action(action_functions[action])(context, data_dict)
         except NotAuthorized:
             abort(403, _('Not authorized to perform bulk update'))
-        h.redirect_to(group_type + '_bulk_process', id=id)
+        h.redirect_to(f'{group_type}_bulk_process', id=id)
 
     def new(self, data=None, errors=None, error_summary=None):
         if data and 'type' in data:
@@ -563,7 +559,7 @@ class GroupController(base.BaseController):
             if id != group['name']:
                 self._force_reindex(group)
 
-            h.redirect_to('%s_read' % group['type'], id=group['name'])
+            h.redirect_to(f"{group['type']}_read", id=group['name'])
         except (NotFound, NotAuthorized) as e:
             abort(404, _('Group not found'))
         except dict_fns.DataError:
@@ -605,7 +601,7 @@ class GroupController(base.BaseController):
         group_type = self._ensure_controller_matches_group_type(id)
 
         if 'cancel' in request.params:
-            h.redirect_to(group_type + '_edit', id=id)
+            h.redirect_to(f'{group_type}_edit', id=id)
 
         context = {'model': model, 'session': model.Session,
                    'user': c.user}
@@ -625,7 +621,7 @@ class GroupController(base.BaseController):
                 else:
                     h.flash_notice(_('%s has been deleted.')
                                    % _(group_type.capitalize()))
-                h.redirect_to(group_type + '_index')
+                h.redirect_to(f'{group_type}_index')
             c.group_dict = self._action('group_show')(context, {'id': id})
         except NotAuthorized:
             abort(403, _('Unauthorized to delete group %s') % '')
@@ -671,8 +667,7 @@ class GroupController(base.BaseController):
             abort(403, _('Unauthorized to create group %s members') % '')
 
         try:
-            data_dict = {'id': id}
-            data_dict['include_datasets'] = False
+            data_dict = {'id': id, 'include_datasets': False}
             c.group_dict = self._action('group_show')(context, data_dict)
             c.roles = self._action('member_roles_list')(
                 context, {'group_type': group_type}
@@ -683,9 +678,7 @@ class GroupController(base.BaseController):
                     tuplize_dict(parse_params(request.params))))
                 data_dict['id'] = id
 
-                email = data_dict.get('email')
-
-                if email:
+                if email := data_dict.get('email'):
                     user_data_dict = {
                         'email': email,
                         'group_id': data_dict['id'],
@@ -699,16 +692,14 @@ class GroupController(base.BaseController):
                 c.group_dict = self._action('group_member_create')(
                     context, data_dict)
 
-                h.redirect_to(group_type + '_members', id=id)
-            else:
-                user = request.params.get('user')
-                if user:
-                    c.user_dict = \
+                h.redirect_to(f'{group_type}_members', id=id)
+            elif user := request.params.get('user'):
+                c.user_dict = \
                         get_action('user_show')(context, {'id': user})
-                    c.user_role = \
+                c.user_role = \
                         authz.users_role_for_group_or_org(id, user) or 'member'
-                else:
-                    c.user_role = 'member'
+            else:
+                c.user_role = 'member'
         except NotAuthorized:
             abort(403, _('Unauthorized to add member to group %s') % '')
         except NotFound:
@@ -721,7 +712,7 @@ class GroupController(base.BaseController):
         group_type = self._ensure_controller_matches_group_type(id)
 
         if 'cancel' in request.params:
-            h.redirect_to(group_type + '_members', id=id)
+            h.redirect_to(f'{group_type}_members', id=id)
 
         context = {'model': model, 'session': model.Session,
                    'user': c.user}
@@ -737,7 +728,7 @@ class GroupController(base.BaseController):
                 self._action('group_member_delete')(
                     context, {'id': id, 'user_id': user_id})
                 h.flash_notice(_('Group member has been deleted.'))
-                h.redirect_to(group_type + '_members', id=id)
+                h.redirect_to(f'{group_type}_members', id=id)
             c.user_dict = self._action('user_show')(context, {'id': user_id})
             c.user_id = user_id
             c.group_id = id
@@ -760,7 +751,7 @@ class GroupController(base.BaseController):
                 if 'group_name' in dict(request.params):
                     id = request.params.getone('group_name')
                 c.error = \
-                    _('Select two revisions before doing the comparison.')
+                        _('Select two revisions before doing the comparison.')
             else:
                 params['diff_entity'] = 'group'
                 h.redirect_to(controller='revision', action='diff', **params)
@@ -785,11 +776,9 @@ class GroupController(base.BaseController):
             from webhelpers.feedgenerator import Atom1Feed
             feed = Atom1Feed(
                 title=_(u'CKAN Group Revision History'),
-                link=h.url_for(
-                    group_type + '_read',
-                    id=c.group_dict['name']),
-                description=_(u'Recent changes to CKAN Group: ') +
-                c.group_dict['display_name'],
+                link=h.url_for(f'{group_type}_read', id=c.group_dict['name']),
+                description=_(u'Recent changes to CKAN Group: ')
+                + c.group_dict['display_name'],
                 language=text_type(get_lang()),
             )
             for revision_dict in c.group_revisions:
@@ -804,13 +793,13 @@ class GroupController(base.BaseController):
                     break
                 if revision_dict['message']:
                     item_title = u'%s' % revision_dict['message'].\
-                        split('\n')[0]
+                            split('\n')[0]
                 else:
-                    item_title = u'%s' % revision_dict['id']
+                    item_title = f"{revision_dict['id']}"
                 item_link = h.url_for(controller='revision', action='read',
                                       id=revision_dict['id'])
                 item_description = _('Log message: ')
-                item_description += '%s' % (revision_dict['message'] or '')
+                item_description += f"{revision_dict['message'] or ''}"
                 item_author_name = revision_dict['author']
                 item_pubdate = revision_date
                 feed.add_item(

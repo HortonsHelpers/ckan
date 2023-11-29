@@ -20,32 +20,28 @@ def package_update(context, data_dict):
         check1 = authz.has_user_permission_for_group_or_org(
             package.owner_org, user, 'update_dataset'
         )
+    elif authz.auth_is_anon_user(context):
+        check1 = all(authz.check_config_permission(p) for p in (
+            'anon_create_dataset',
+            'create_dataset_if_not_in_organization',
+            'create_unowned_dataset',
+            ))
     else:
-        # If dataset is not owned then we can edit if config permissions allow
-        if authz.auth_is_anon_user(context):
-            check1 = all(authz.check_config_permission(p) for p in (
-                'anon_create_dataset',
-                'create_dataset_if_not_in_organization',
-                'create_unowned_dataset',
-                ))
-        else:
-            check1 = all(authz.check_config_permission(p) for p in (
-                'create_dataset_if_not_in_organization',
-                'create_unowned_dataset',
-                )) or authz.has_user_permission_for_some_org(
-                user, 'create_dataset')
+        check1 = all(authz.check_config_permission(p) for p in (
+            'create_dataset_if_not_in_organization',
+            'create_unowned_dataset',
+            )) or authz.has_user_permission_for_some_org(
+            user, 'create_dataset')
     if not check1:
         return {'success': False,
                 'msg': _('User %s not authorized to edit package %s') %
                         (str(user), package.id)}
+    if check2 := _check_group_auth(context, data_dict):
+        return {'success': True}
     else:
-        check2 = _check_group_auth(context, data_dict)
-        if not check2:
-            return {'success': False,
-                    'msg': _('User %s not authorized to edit these groups') %
-                            (str(user))}
-
-    return {'success': True}
+        return {'success': False,
+                'msg': _('User %s not authorized to edit these groups') %
+                        (str(user))}
 
 def package_resource_reorder(context, data_dict):
     ## the action function runs package update so no need to run it twice
@@ -64,14 +60,14 @@ def resource_update(context, data_dict):
         )
 
     pkg_dict = {'id': pkg.id}
-    authorized = authz.is_authorized('package_update', context, pkg_dict).get('success')
-
-    if not authorized:
+    if authorized := authz.is_authorized(
+        'package_update', context, pkg_dict
+    ).get('success'):
+        return {'success': True}
+    else:
         return {'success': False,
                 'msg': _('User %s not authorized to edit resource %s') %
                         (str(user), resource.id)}
-    else:
-        return {'success': True}
 
 
 def resource_view_update(context, data_dict):
@@ -90,80 +86,74 @@ def package_change_state(context, data_dict):
     user = context['user']
     package = logic_auth.get_package_object(context, data_dict)
 
-    # use the logic for package_update
-    authorized = authz.is_authorized_boolean('package_update',
-                                                 context,
-                                                 data_dict)
-    if not authorized:
+    if authorized := authz.is_authorized_boolean(
+        'package_update', context, data_dict
+    ):
+        return {'success': True}
+    else:
         return {
             'success': False,
             'msg': _('User %s not authorized to change state of package %s') %
                     (str(user), package.id)
         }
-    else:
-        return {'success': True}
 
 
 def group_update(context, data_dict):
     group = logic_auth.get_group_object(context, data_dict)
     user = context['user']
-    authorized = authz.has_user_permission_for_group_or_org(group.id,
-                                                                user,
-                                                                'update')
-    if not authorized:
+    if authorized := authz.has_user_permission_for_group_or_org(
+        group.id, user, 'update'
+    ):
+        return {'success': True}
+    else:
         return {'success': False,
                 'msg': _('User %s not authorized to edit group %s') %
                         (str(user), group.id)}
-    else:
-        return {'success': True}
 
 
 def organization_update(context, data_dict):
     group = logic_auth.get_group_object(context, data_dict)
     user = context['user']
-    authorized = authz.has_user_permission_for_group_or_org(
-        group.id, user, 'update')
-    if not authorized:
+    if authorized := authz.has_user_permission_for_group_or_org(
+        group.id, user, 'update'
+    ):
+        return {'success': True}
+    else:
         return {'success': False,
                 'msg': _('User %s not authorized to edit organization %s') %
                         (user, group.id)}
-    else:
-        return {'success': True}
 
 
 def group_change_state(context, data_dict):
     user = context['user']
     group = logic_auth.get_group_object(context, data_dict)
 
-    # use logic for group_update
-    authorized = authz.is_authorized_boolean('group_update',
-                                                 context,
-                                                 data_dict)
-    if not authorized:
+    if authorized := authz.is_authorized_boolean(
+        'group_update', context, data_dict
+    ):
+        return {'success': True}
+    else:
         return {
             'success': False,
             'msg': _('User %s not authorized to change state of group %s') %
                     (str(user), group.id)
         }
-    else:
-        return {'success': True}
 
 
 def group_edit_permissions(context, data_dict):
     user = context['user']
     group = logic_auth.get_group_object(context, data_dict)
 
-    authorized = authz.has_user_permission_for_group_or_org(
-        group.id, user, 'update')
-
-    if not authorized:
+    if authorized := authz.has_user_permission_for_group_or_org(
+        group.id, user, 'update'
+    ):
+        return {'success': True}
+    else:
         return {
             'success': False,
             'msg': _('User %s not authorized to'
                      ' edit permissions of group %s') %
             (str(user), group.id)}
-    else:
-        return {'success': True}
 
 
 @logic.auth_allow_anonymous_access
@@ -262,9 +252,7 @@ def bulk_update_private(context, data_dict):
     user = context['user']
     authorized = authz.has_user_permission_for_group_or_org(
         org_id, user, 'update')
-    if not authorized:
-        return {'success': False}
-    return {'success': True}
+    return {'success': False} if not authorized else {'success': True}
 
 
 def bulk_update_public(context, data_dict):
@@ -272,9 +260,7 @@ def bulk_update_public(context, data_dict):
     user = context['user']
     authorized = authz.has_user_permission_for_group_or_org(
         org_id, user, 'update')
-    if not authorized:
-        return {'success': False}
-    return {'success': True}
+    return {'success': False} if not authorized else {'success': True}
 
 
 def bulk_update_delete(context, data_dict):
@@ -282,9 +268,7 @@ def bulk_update_delete(context, data_dict):
     user = context['user']
     authorized = authz.has_user_permission_for_group_or_org(
         org_id, user, 'update')
-    if not authorized:
-        return {'success': False}
-    return {'success': True}
+    return {'success': False} if not authorized else {'success': True}
 
 
 def config_option_update(context, data_dict):

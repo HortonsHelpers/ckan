@@ -53,8 +53,9 @@ class DomainObjectModificationExtension(plugins.SingletonPlugin):
                 for item in plugins.PluginImplementations(plugins.IResourceUrlChange):
                     item.notify(obj)
 
-        changed_pkgs = set(obj for obj in changed
-                           if isinstance(obj, _package.Package))
+        changed_pkgs = {
+            obj for obj in changed if isinstance(obj, _package.Package)
+        }
 
         for obj in new | changed | deleted:
             if not isinstance(obj, _package.Package):

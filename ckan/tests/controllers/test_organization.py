@@ -214,8 +214,10 @@ class TestOrganizationDelete(helpers.FunctionalTestBase):
     def test_delete_organization_with_datasets(self):
         ''' Test deletion of organization that has datasets'''
         text = 'Organization cannot be deleted while it still has datasets'
-        datasets = [factories.Dataset(owner_org=self.organization['id'])
-                    for i in range(0, 5)]
+        datasets = [
+            factories.Dataset(owner_org=self.organization['id'])
+            for _ in range(0, 5)
+        ]
         response = self.app.get(
             url=url_for(
                 controller='organization',
@@ -253,8 +255,10 @@ class TestOrganizationBulkProcess(helpers.FunctionalTestBase):
             id=self.organization['id'])
 
     def test_make_private(self):
-        datasets = [factories.Dataset(owner_org=self.organization['id'])
-                    for i in range(0, 5)]
+        datasets = [
+            factories.Dataset(owner_org=self.organization['id'])
+            for _ in range(0, 5)
+        ]
         response = self.app.get(url=self.organization_bulk_url,
                                 extra_environ=self.user_env)
         form = response.forms[1]
@@ -272,9 +276,10 @@ class TestOrganizationBulkProcess(helpers.FunctionalTestBase):
             assert_equal(d['private'], True)
 
     def test_make_public(self):
-        datasets = [factories.Dataset(owner_org=self.organization['id'],
-                                      private=True)
-                    for i in range(0, 5)]
+        datasets = [
+            factories.Dataset(owner_org=self.organization['id'], private=True)
+            for _ in range(0, 5)
+        ]
         response = self.app.get(url=self.organization_bulk_url,
                                 extra_environ=self.user_env)
         form = response.forms[1]
@@ -292,9 +297,10 @@ class TestOrganizationBulkProcess(helpers.FunctionalTestBase):
             assert_equal(d['private'], False)
 
     def test_delete(self):
-        datasets = [factories.Dataset(owner_org=self.organization['id'],
-                                      private=True)
-                    for i in range(0, 5)]
+        datasets = [
+            factories.Dataset(owner_org=self.organization['id'], private=True)
+            for _ in range(0, 5)
+        ]
         response = self.app.get(url=self.organization_bulk_url,
                                 extra_environ=self.user_env)
         form = response.forms[1]

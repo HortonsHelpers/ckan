@@ -205,15 +205,25 @@ drop table tmp_expired_id;
 
 update revision set approved_timestamp = timestamp;
 '''
-    
-    migrate_engine.execute('begin;  ' + make_missing_revisions + update_schema + ' commit;')
-    
+
+    migrate_engine.execute(
+        f'begin;  {make_missing_revisions}{update_schema} commit;'
+    )
+
     for table in ['package', 'resource', 'resource_group', 'package_extra', 
                   'package_tag', 'package_relationship', 'group', 'group_extra']:
-        count = migrate_engine.execute('''select count(*) from "%s"''' % table).first()[0]
-        revision_expired_id_count = migrate_engine.execute('''select count(*) from %s_revision where %s_revision.expired_id is null''' % (table, table)).first()[0]
-        revision_expired_data_count = migrate_engine.execute('''select count(*) from %s_revision where %s_revision.expired_timestamp = '9999-12-31' ''' % (table, table)).first()[0]
-        revision_current = migrate_engine.execute('''select count(*) from %s_revision where %s_revision.current = '1' ''' % (table, table)).first()[0]
+        count = migrate_engine.execute(
+            f'''select count(*) from "{table}"'''
+        ).first()[0]
+        revision_expired_id_count = migrate_engine.execute(
+            f'''select count(*) from {table}_revision where {table}_revision.expired_id is null'''
+        ).first()[0]
+        revision_expired_data_count = migrate_engine.execute(
+            f'''select count(*) from {table}_revision where {table}_revision.expired_timestamp = '9999-12-31' '''
+        ).first()[0]
+        revision_current = migrate_engine.execute(
+            f'''select count(*) from {table}_revision where {table}_revision.current = '1' '''
+        ).first()[0]
         assert count == revision_expired_id_count
         assert count == revision_expired_data_count
         assert count == revision_current

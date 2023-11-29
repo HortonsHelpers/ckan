@@ -77,7 +77,7 @@ def extras_dict_dictize(extras_dict, context):
     result_list = []
     for name, extra in extras_dict.iteritems():
         dictized = d.table_dictize(extra, context)
-        if not extra.state == 'active':
+        if extra.state != 'active':
             continue
         value = dictized["value"]
         result_list.append(dictized)
@@ -100,8 +100,7 @@ def extras_list_dictize(extras_list, context):
 def resource_dictize(res, context):
     model = context['model']
     resource = d.table_dictize(res, context)
-    extras = resource.pop("extras", None)
-    if extras:
+    if extras := resource.pop("extras", None):
         resource.update(extras)
     # some urls do not have the protocol this adds http:// to these
     url = resource['url']
@@ -152,12 +151,15 @@ def _execute_with_revision(q, rev_table, context):
     revision_date = context.get('revision_date')
 
     if revision_id:
-        revision = session.query(context['model'].Revision).filter_by(
-            id=revision_id).first()
-        if not revision:
-            raise logic.NotFound
-        revision_date = revision.timestamp
+        if (
+            revision := session.query(context['model'].Revision)
+            .filter_by(id=revision_id)
+            .first()
+        ):
+            revision_date = revision.timestamp
 
+        else:
+            raise logic.NotFound
     q = q.where(rev_table.c.revision_timestamp <= revision_date)
     q = q.where(rev_table.c.expired_timestamp > revision_date)
 
@@ -223,7 +225,7 @@ def package_dictize(pkg, context):
     # same as its name, but the display_name might get changed later (e.g.
     # translated into another language by the multilingual extension).
     for tag in result_dict['tags']:
-        assert not 'display_name' in tag
+        assert 'display_name' not in tag
         tag['display_name'] = tag['name']
 
     #extras
@@ -255,16 +257,12 @@ def package_dictize(pkg, context):
                                                with_package_counts=False)
 
     #owning organization
-    if is_latest_revision:
-        group = model.group_table
-    else:
-        group = model.group_revision_table
+    group = model.group_table if is_latest_revision else model.group_revision_table
     q = select([group]
                ).where(group.c.id == pkg.owner_org) \
                 .where(group.c.state == 'active')
     result = execute(q, group, context)
-    organizations = d.obj_list_dictize(result, context)
-    if organizations:
+    if organizations := d.obj_list_dictize(result, context):
         result_dict["organization"] = organizations[0]
     else:
         result_dict["organization"] = None
@@ -398,8 +396,9 @@ def group_dictize(group, context,
                 else:
                     q['rows'] = packages_limit
 
-            search_context = dict((k, v) for (k, v) in context.items()
-                                  if k != 'schema')
+            search_context = {
+                k: v for (k, v) in context.items() if k != 'schema'
+            }
             search_results = logic.get_action('package_search')(search_context,
                                                                 q)
             return search_results['count'], search_results['results']
@@ -456,8 +455,7 @@ def group_dictize(group, context,
         #of potential vulnerability of dodgy api input
         image_url = munge.munge_filename_legacy(image_url)
         result_dict['image_display_url'] = h.url_for_static(
-            'uploads/group/%s' % result_dict.get('image_url'),
-            qualified=True
+            f"uploads/group/{result_dict.get('image_url')}", qualified=True
         )
     return result_dict
 
@@ -494,9 +492,7 @@ def tag_dictize(tag, context, include_datasets=True):
         query = search.PackageSearchQuery()
 
         tag_query = u'+capacity:public '
-        vocab_id = tag_dict.get('vocabulary_id')
-
-        if vocab_id:
+        if vocab_id := tag_dict.get('vocabulary_id'):
             model = context['model']
             vocab = model.Vocabulary.get(vocab_id)
             tag_query += u'+vocab_{0}:"{1}"'.format(vocab.name, tag.name)
@@ -524,9 +520,8 @@ def tag_dictize(tag, context, include_datasets=True):
                 for item in plugins.PluginImplementations(plugins.IPackageController):
                     package_dict = item.before_view(package_dict)
                 tag_dict['packages'].append(package_dict)
-    else:
-        if include_datasets:
-            tag_dict['packages'] = package_dicts
+    elif include_datasets:
+        tag_dict['packages'] = package_dicts
 
     return tag_dict
 
@@ -601,8 +596,9 @@ def group_to_api(group, context):
     api_version = context.get('api_version')
     assert api_version, 'No api_version supplied in context'
     dictized = group_dictize(group, context)
-    dictized["extras"] = dict((extra["key"], extra["value"])
-                              for extra in dictized["extras"])
+    dictized["extras"] = {
+        extra["key"]: extra["value"] for extra in dictized["extras"]
+    }
     if api_version == 1:
         dictized["packages"] = sorted([pkg["name"] for pkg in dictized["packages"]])
     else:
@@ -632,8 +628,9 @@ def package_to_api(pkg, context):
 
     dictized["tags"] = [tag["name"] for tag in dictized["tags"] \
                         if not tag.get('vocabulary_id')]
-    dictized["extras"] = dict((extra["key"], extra["value"])
-                              for extra in dictized["extras"])
+    dictized["extras"] = {
+        extra["key"]: extra["value"] for extra in dictized["extras"]
+    }
     dictized['license'] = pkg.license.title if pkg.license else None
     dictized['ratings_average'] = pkg.get_average_rating()
     dictized['ratings_count'] = len(pkg.ratings)
@@ -641,7 +638,7 @@ def package_to_api(pkg, context):
 
     site_url = config.get('ckan.site_url', None)
     if site_url:
-        dictized['ckan_url'] = '%s/dataset/%s' % (site_url, pkg.name)
+        dictized['ckan_url'] = f'{site_url}/dataset/{pkg.name}'
 
     for resource in dictized["resources"]:
         resource_dict_to_api(resource, pkg.id, context)
@@ -697,8 +694,7 @@ def vocabulary_list_dictize(vocabulary_list, context):
             for vocabulary in vocabulary_list]
 
 def activity_dictize(activity, context):
-    activity_dict = d.table_dictize(activity, context)
-    return activity_dict
+    return d.table_dictize(activity, context)
 
 def activity_list_dictize(activity_list, context):
     return [activity_dictize(activity, context) for activity in activity_list]
@@ -761,8 +757,5 @@ def resource_view_dictize(resource_view, context):
     return dictized
 
 def resource_view_list_dictize(resource_views, context):
-    resource_view_dicts = []
-    for view in resource_views:
-        resource_view_dicts.append(resource_view_dictize(view, context))
-    return resource_view_dicts
+    return [resource_view_dictize(view, context) for view in resource_views]
 

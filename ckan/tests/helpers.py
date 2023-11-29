@@ -337,8 +337,7 @@ def webtest_submit_fields(form, name=None, index=None, submit_value=None):
                 submit.append((name, field))
                 continue
             if isinstance(value, list):
-                for item in value:
-                    submit.append((name, item))
+                submit.extend((name, item) for item in value)
             else:
                 submit.append((name, value))
     return submit
@@ -453,13 +452,14 @@ def mock_auth(auth_function_path):
             try:
                 with mock.patch(auth_function_path) as mocked_auth:
                     clear_auth_functions_cache()
-                    new_args = args + tuple([mocked_auth])
+                    new_args = args + (mocked_auth, )
                     return_value = func(*new_args, **kwargs)
             finally:
                 clear_auth_functions_cache()
             return return_value
 
         return nose.tools.make_decorator(func)(wrapper)
+
     return decorator
 
 
@@ -502,14 +502,14 @@ def mock_action(action_name):
                     return mock_action
                 else:
                     return original_get_action(called_action_name)
+
             try:
-                with mock.patch('ckan.logic.get_action') as mock_get_action, \
-                        mock.patch('ckan.plugins.toolkit.get_action') \
-                        as mock_get_action_toolkit:
+                with (mock.patch('ckan.logic.get_action') as mock_get_action, mock.patch('ckan.plugins.toolkit.get_action') \
+                                        as mock_get_action_toolkit):
                     mock_get_action.side_effect = side_effect
                     mock_get_action_toolkit.side_effect = side_effect
 
-                    new_args = args + tuple([mock_action])
+                    new_args = args + (mock_action, )
                     return_value = func(*new_args, **kwargs)
             finally:
                 # Make sure to stop the mock, even with an exception
@@ -517,6 +517,7 @@ def mock_action(action_name):
             return return_value
 
         return nose.tools.make_decorator(func)(wrapper)
+
     return decorator
 
 

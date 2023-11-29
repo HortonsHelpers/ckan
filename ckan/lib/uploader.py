@@ -185,8 +185,7 @@ class Upload(object):
             self.filepath = os.path.join(self.storage_path, self.filename)
             data_dict[url_field] = self.filename
             self.upload_file = _get_underlying_file(self.upload_field_storage)
-            self.tmp_filepath = self.filepath + '~'
-        # keep the file if there has been no change
+            self.tmp_filepath = f'{self.filepath}~'
         elif self.old_filename and not self.old_filename.startswith('http'):
             if not self.clear:
                 data_dict[url_field] = self.old_filename
@@ -311,14 +310,11 @@ class ResourceUpload(object):
             resource['url_type'] = ''
 
     def get_directory(self, id):
-        directory = os.path.join(self.storage_path,
-                                 id[0:3], id[3:6])
-        return directory
+        return os.path.join(self.storage_path, id[:3], id[3:6])
 
     def get_path(self, id):
         directory = self.get_directory(id)
-        filepath = os.path.join(directory, id[6:])
-        return filepath
+        return os.path.join(directory, id[6:])
 
     def upload(self, id, max_size=10):
         '''Actually upload the file.
@@ -349,7 +345,7 @@ class ResourceUpload(object):
                 # errno 17 is file already exists
                 if e.errno != 17:
                     raise
-            tmp_filepath = filepath + '~'
+            tmp_filepath = f'{filepath}~'
             with open(tmp_filepath, 'wb+') as output_file:
                 try:
                     _copy_file(self.upload_file, output_file, max_size)

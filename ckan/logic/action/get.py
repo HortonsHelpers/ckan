@@ -60,8 +60,7 @@ def _activity_stream_get_filtered_users():
     option and return a list of their ids. If the config is not specified,
     returns the id of the site user.
     '''
-    users = config.get('ckan.hide_activity_from_users')
-    if users:
+    if users := config.get('ckan.hide_activity_from_users'):
         users_list = users.split()
     else:
         context = {'model': model, 'ignore_auth': True}
@@ -118,12 +117,10 @@ def package_list(context, data_dict):
     ))
     query = query.order_by(col)
 
-    limit = data_dict.get('limit')
-    if limit:
+    if limit := data_dict.get('limit'):
         query = query.limit(limit)
 
-    offset = data_dict.get('offset')
-    if offset:
+    if offset := data_dict.get('offset'):
         query = query.offset(offset)
 
     ## Returns the first field in each result record
@@ -155,15 +152,11 @@ def current_package_list_with_resources(context, data_dict):
     offset = data_dict.get('offset', 0)
     user = context['user']
 
-    if not 'offset' in data_dict and 'page' in data_dict:
+    if 'offset' not in data_dict and 'page' in data_dict:
         log.warning('"page" parameter is deprecated.  '
                     'Use the "offset" parameter instead')
         page = data_dict['page']
-        if limit:
-            offset = (page - 1) * limit
-        else:
-            offset = 0
-
+        offset = (page - 1) * limit if limit else 0
     _check_access('current_package_list_with_resources', context, data_dict)
 
     search = package_search(context, {
@@ -242,12 +235,12 @@ def package_revision_list(context, data_dict):
 
     _check_access('package_revision_list', context, data_dict)
 
-    revision_dicts = []
-    for revision, object_revisions in pkg.all_related_revisions:
-        revision_dicts.append(model.revision_as_dict(revision,
-                                                     include_packages=False,
-                                                     include_groups=False))
-    return revision_dicts
+    return [
+        model.revision_as_dict(
+            revision, include_packages=False, include_groups=False
+        )
+        for revision, object_revisions in pkg.all_related_revisions
+    ]
 
 
 def member_list(context, data_dict=None):
@@ -342,10 +335,7 @@ def _group_or_org_list(context, data_dict, is_org=False):
     if limit is None or int(limit) > max_limit:
         limit = max_limit
 
-    # order_by deprecated in ckan 1.8
-    # if it is supplied and sort isn't use order_by and raise a warning
-    order_by = data_dict.get('order_by', '')
-    if order_by:
+    if order_by := data_dict.get('order_by', ''):
         log.warn('`order_by` deprecated please use `sort`')
         if not data_dict.get('sort'):
             sort = order_by
@@ -569,10 +559,7 @@ def group_list_authz(context, data_dict):
             .filter(model.Member.capacity.in_(roles)) \
             .filter(model.Member.table_id == user_id) \
             .filter(model.Member.state == 'active')
-        group_ids = []
-        for row in q.all():
-            group_ids.append(row.group_id)
-
+        group_ids = [row.group_id for row in q.all()]
         if not group_ids:
             return []
 
@@ -586,12 +573,10 @@ def group_list_authz(context, data_dict):
     groups = q.all()
 
     if available_only:
-        package = context.get('package')
-        if package:
+        if package := context.get('package'):
             groups = set(groups) - set(package.get_groups())
 
-    group_list = model_dictize.group_list_dictize(groups, context)
-    return group_list
+    return model_dictize.group_list_dictize(groups, context)
 
 
 def organization_list_for_user(context, data_dict):
@@ -639,10 +624,10 @@ def organization_list_for_user(context, data_dict):
     '''
     model = context['model']
     if data_dict.get('id'):
-        user_obj = model.User.get(data_dict['id'])
-        if not user_obj:
+        if user_obj := model.User.get(data_dict['id']):
+            user = user_obj.name
+        else:
             raise NotFound
-        user = user_obj.name
     else:
         user = context['user']
 
@@ -700,9 +685,11 @@ def organization_list_for_user(context, data_dict):
             (org, group_ids_to_capacities[org.id]) for org in orgs_q.all()]
 
     context['with_capacity'] = True
-    orgs_list = model_dictize.group_list_dictize(orgs_and_capacities, context,
-        with_package_counts=asbool(data_dict.get('include_dataset_count')))
-    return orgs_list
+    return model_dictize.group_list_dictize(
+        orgs_and_capacities,
+        context,
+        with_package_counts=asbool(data_dict.get('include_dataset_count')),
+    )
 
 
 def _group_or_org_revision_list(context, data_dict):
@@ -720,12 +707,12 @@ def _group_or_org_revision_list(context, data_dict):
     if group is None:
         raise NotFound
 
-    revision_dicts = []
-    for revision, object_revisions in group.all_related_revisions:
-        revision_dicts.append(model.revision_as_dict(revision,
-                                                     include_packages=False,
-                                                     include_groups=False))
-    return revision_dicts
+    return [
+        model.revision_as_dict(
+            revision, include_packages=False, include_groups=False
+        )
+        for revision, object_revisions in group.all_related_revisions
+    ]
 
 
 def group_revision_list(context, data_dict):
@@ -808,14 +795,13 @@ def tag_list(context, data_dict):
         tags = model.Tag.all(vocab_id_or_name)
 
     if tags:
-        if all_fields:
-            tag_list = model_dictize.tag_list_dictize(tags, context)
-        else:
-            tag_list = [tag.name for tag in tags]
+        return (
+            model_dictize.tag_list_dictize(tags, context)
+            if all_fields
+            else [tag.name for tag in tags]
+        )
     else:
-        tag_list = []
-
-    return tag_list
+        return []
 
 
 def user_list(context, data_dict):
@@ -891,18 +877,24 @@ def user_list(context, data_dict):
     if order_by == 'display_name' or order_by_field is None:
         query = query.order_by(
             _case(
-                [(
-                    _or_(
-                        model.User.fullname == None,
-                        model.User.fullname == ''
-                    ),
-                    model.User.name
-                )],
-                else_=model.User.fullname
+                [
+                    (
+                        _or_(
+                            model.User.fullname is None,
+                            model.User.fullname == '',
+                        ),
+                        model.User.name,
+                    )
+                ],
+                else_=model.User.fullname,
             )
         )
-    elif order_by_field == 'number_created_packages' or order_by_field == 'fullname' \
-            or order_by_field == 'about' or order_by_field == 'sysadmin':
+    elif order_by_field in [
+        'number_created_packages',
+        'fullname',
+        'about',
+        'sysadmin',
+    ]:
         query = query.order_by(order_by_field, model.User.name)
     else:
         query = query.order_by(order_by_field)
@@ -921,9 +913,7 @@ def user_list(context, data_dict):
             result_dict = model_dictize.user_dictize(user[0], context)
             users_list.append(result_dict)
     else:
-        for user in query.all():
-            users_list.append(user[0])
-
+        users_list.extend(user[0] for user in query.all())
     return users_list
 
 
@@ -968,14 +958,12 @@ def package_relationships_list(context, data_dict):
     relationships = pkg1.get_relationships(with_package=pkg2, type=rel)
 
     if rel and not relationships:
-        raise NotFound('Relationship "%s %s %s" not found.'
-                       % (id, rel, id2))
+        raise NotFound(f'Relationship "{id} {rel} {id2}" not found.')
 
-    relationship_dicts = [
+    return [
         rel.as_dict(pkg1, ref_package_by=ref_package_by)
-        for rel in relationships]
-
-    return relationship_dicts
+        for rel in relationships
+    ]
 
 
 def package_show(context, data_dict):
@@ -1010,10 +998,11 @@ def package_show(context, data_dict):
     include_tracking = asbool(data_dict.get('include_tracking', False))
 
     package_dict = None
-    use_cache = (context.get('use_cache', True)
-                 and not 'revision_id' in context
-                 and not 'revision_date' in context)
-    if use_cache:
+    if (
+        use_cache := context.get('use_cache', True)
+        and 'revision_id' not in context
+        and 'revision_date' not in context
+    ):
         try:
             search_result = search.show(name_or_id)
         except (search.SearchError, socket.error):
@@ -1227,9 +1216,9 @@ def revision_show(context, data_dict):
     rev = model.Session.query(model.Revision).get(id)
     if rev is None:
         raise NotFound
-    rev_dict = model.revision_as_dict(rev, include_packages=True,
-                                      ref_package_by=ref_package_by)
-    return rev_dict
+    return model.revision_as_dict(
+        rev, include_packages=True, ref_package_by=ref_package_by
+    )
 
 
 def _group_or_org_show(context, data_dict, is_org=False):
@@ -1535,7 +1524,7 @@ def user_show(context, data_dict):
                 'include_private': True,
                 'include_drafts': True})
 
-        search_dict.update({'fq': fq})
+        search_dict['fq'] = fq
 
         user_dict['datasets'] = \
             logic.get_action('package_search')(context=context,
@@ -1590,7 +1579,7 @@ def package_autocomplete(context, data_dict):
             match_displayed = package.name
         else:
             match_field = 'title'
-            match_displayed = '%s (%s)' % (package.title, package.name)
+            match_displayed = f'{package.title} ({package.name})'
         result_dict = {
             'name': package.name,
             'title': package.title,
@@ -1622,7 +1611,7 @@ def format_autocomplete(context, data_dict):
     q = data_dict['q']
     limit = data_dict.get('limit', 5)
 
-    like_q = u'%' + q + u'%'
+    like_q = f'%{q}%'
 
     query = (session.query(
         model.Resource.format,
@@ -1666,10 +1655,7 @@ def user_autocomplete(context, data_dict):
 
     user_list = []
     for user in query.all():
-        result_dict = {}
-        for k in ['id', 'name', 'fullname']:
-            result_dict[k] = getattr(user, k)
-
+        result_dict = {k: getattr(user, k) for k in ['id', 'name', 'fullname']}
         user_list.append(result_dict)
 
     return user_list
@@ -1686,9 +1672,7 @@ def _group_or_org_autocomplete(context, data_dict, is_org):
 
     group_list = []
     for group in query.all():
-        result_dict = {}
-        for k in ['id', 'name', 'title']:
-            result_dict[k] = getattr(group, k)
+        result_dict = {k: getattr(group, k) for k in ['id', 'name', 'title']}
         group_list.append(result_dict)
 
     return group_list

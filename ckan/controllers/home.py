@@ -92,7 +92,7 @@ class HomeController(base.BaseController):
             for cache_name in wui_caches:
                 cache_ = cache.get_cache(cache_name, type='dbm')
                 cache_.clear()
-            return 'Cleared caches: %s' % ', '.join(wui_caches)
+            return f"Cleared caches: {', '.join(wui_caches)}"
 
     def cors_options(self, url=None):
         # just return 200 OK and empty data

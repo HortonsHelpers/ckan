@@ -26,10 +26,6 @@ class TaskStatus(domain_object.DomainObject):
     @classmethod
     def get(cls, reference):
         '''Returns a task status object referenced by its id.'''
-        if not reference:
-            return None
-
-        task = meta.Session.query(cls).get(reference)
-        return task
+        return None if not reference else meta.Session.query(cls).get(reference)
 
 meta.mapper(TaskStatus, task_status_table)

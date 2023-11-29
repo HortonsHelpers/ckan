@@ -91,8 +91,7 @@ def make_pylons_stack(conf, full_stack=True, static_files=True,
             'bottom': True,
             'bundle': True,
         }
-    root_path = config.get('ckan.root_path', None)
-    if root_path:
+    if root_path := config.get('ckan.root_path', None):
         root_path = re.sub('/{{LANG}}', '', root_path)
         fanstatic_config['base_url'] = root_path
     app = Fanstatic(app, **fanstatic_config)
@@ -147,8 +146,7 @@ def make_pylons_stack(conf, full_stack=True, static_files=True,
             cache_max_age=static_max_age)
         static_parsers = [static_app, app]
 
-        storage_directory = uploader.get_storage_path()
-        if storage_directory:
+        if storage_directory := uploader.get_storage_path():
             path = os.path.join(storage_directory, 'storage')
             try:
                 os.makedirs(path)
@@ -160,15 +158,11 @@ def make_pylons_stack(conf, full_stack=True, static_files=True,
             storage_app = StaticURLParser(path, cache_max_age=static_max_age)
             static_parsers.insert(0, storage_app)
 
-        # Configurable extra static file paths
-        extra_static_parsers = []
-        for public_path in config.get(
-                'extra_public_paths', '').split(','):
-            if public_path.strip():
-                extra_static_parsers.append(
-                    StaticURLParser(public_path.strip(),
-                                    cache_max_age=static_max_age)
-                )
+        extra_static_parsers = [
+            StaticURLParser(public_path.strip(), cache_max_age=static_max_age)
+            for public_path in config.get('extra_public_paths', '').split(',')
+            if public_path.strip()
+        ]
         app = Cascade(extra_static_parsers + static_parsers)
 
     # Prevent the host from request to be added to the new header location.
@@ -209,17 +203,17 @@ class CKANPylonsApp(PylonsApp):
         '''
 
         pylons_mapper = config['routes.map']
-        match_route = pylons_mapper.routematch(environ=environ)
-        if match_route:
-            match, route = match_route
-            origin = 'core'
-            if hasattr(route, '_ckan_core') and not route._ckan_core:
-                origin = 'extension'
-            log.debug('Pylons route match: {0} Origin: {1}'.format(
-                match, origin))
-            return (True, self.app_name, origin)
-        else:
+        if not (match_route := pylons_mapper.routematch(environ=environ)):
             return (False, self.app_name)
+        match, route = match_route
+        origin = (
+            'extension'
+            if hasattr(route, '_ckan_core') and not route._ckan_core
+            else 'core'
+        )
+        log.debug('Pylons route match: {0} Origin: {1}'.format(
+            match, origin))
+        return (True, self.app_name, origin)
 
 
 class CloseCallbackWrapper(object):
@@ -235,8 +229,7 @@ class CloseCallbackWrapper(object):
         then calls callback(environ).
         """
         try:
-            for item in self.file:
-                yield item
+            yield from self.file
         except GeneratorExit:
             if hasattr(self.file, 'close'):
                 self.file.close()

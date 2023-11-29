@@ -99,16 +99,13 @@ class Member(vdm.sqlalchemy.RevisionedObjectMixin,
         # refer to objects by name, not ID, to help debugging
         if self.table_name == 'package':
             pkg = meta.Session.query(_package.Package).get(self.table_id)
-            table_info = 'package=%s' % pkg.name if pkg else 'None'
+            table_info = f'package={pkg.name}' if pkg else 'None'
         elif self.table_name == 'group':
             group = meta.Session.query(Group).get(self.table_id)
-            table_info = 'group=%s' % group.name if group else 'None'
+            table_info = f'group={group.name}' if group else 'None'
         else:
-            table_info = 'table_name=%s table_id=%s' % (self.table_name,
-                                                        self.table_id)
-        return u'<Member group=%s %s capacity=%s state=%s>' % \
-               (self.group.name if self.group else repr(self.group),
-                table_info, self.capacity, self.state)
+            table_info = f'table_name={self.table_name} table_id={self.table_id}'
+        return f'<Member group={self.group.name if self.group else repr(self.group)} {table_info} capacity={self.capacity} state={self.state}>'
 
 
 class Group(vdm.sqlalchemy.RevisionedObjectMixin,
@@ -126,10 +123,7 @@ class Group(vdm.sqlalchemy.RevisionedObjectMixin,
 
     @property
     def display_name(self):
-        if self.title is not None and len(self.title):
-            return self.title
-        else:
-            return self.name
+        return self.title if self.title is not None and len(self.title) else self.name
 
     @classmethod
     def get(cls, reference):
@@ -164,8 +158,6 @@ class Group(vdm.sqlalchemy.RevisionedObjectMixin,
         """
         assert status in ["approved", "denied"]
         self.approval_status = status
-        if status == "denied":
-            pass
 
     def get_children_groups(self, type='group'):
         '''Returns the groups one level underneath this group in the hierarchy.
@@ -196,11 +188,12 @@ class Group(vdm.sqlalchemy.RevisionedObjectMixin,
         [(u'8ac0...', u'national-health-service', u'National Health Service', u'e041...'),
          (u'b468...', u'nhs-wirral-ccg', u'NHS Wirral CCG', u'8ac0...')]
         '''
-        results = meta.Session.query(Group.id, Group.name, Group.title,
-                                     'parent_id').\
-            from_statement(text(HIERARCHY_DOWNWARDS_CTE)).\
-            params(id=self.id, type=type).all()
-        return results
+        return (
+            meta.Session.query(Group.id, Group.name, Group.title, 'parent_id')
+            .from_statement(text(HIERARCHY_DOWNWARDS_CTE))
+            .params(id=self.id, type=type)
+            .all()
+        )
 
     def get_parent_groups(self, type='group'):
         '''Returns this group's parent groups.
@@ -229,15 +222,22 @@ class Group(vdm.sqlalchemy.RevisionedObjectMixin,
         '''Returns a list of the groups (of the specified type) which have
         no parent groups. Groups are sorted by title.
         '''
-        return meta.Session.query(cls).\
-            outerjoin(Member,
-                      and_(Member.group_id == Group.id,
-                           Member.table_name == 'group',
-                           Member.state == 'active')).\
-            filter(Member.id == None).\
-            filter(Group.type == type).\
-            filter(Group.state == 'active').\
-            order_by(Group.title).all()
+        return (
+            meta.Session.query(cls)
+            .outerjoin(
+                Member,
+                and_(
+                    Member.group_id == Group.id,
+                    Member.table_name == 'group',
+                    Member.state == 'active',
+                ),
+            )
+            .filter(Member.id is None)
+            .filter(Group.type == type)
+            .filter(Group.state == 'active')
+            .order_by(Group.title)
+            .all()
+        )
 
     def groups_allowed_to_be_its_parent(self, type='group'):
         '''Returns a list of the groups (of the specified type) which are
@@ -249,9 +249,12 @@ class Group(vdm.sqlalchemy.RevisionedObjectMixin,
 
         '''
         all_groups = self.all(group_type=type)
-        excluded_groups = set(group_name
-                              for group_id, group_name, group_title, parent in
-                              self.get_children_group_hierarchy(type=type))
+        excluded_groups = {
+            group_name
+            for group_id, group_name, group_title, parent in self.get_children_group_hierarchy(
+                type=type
+            )
+        }
         excluded_groups.add(self.name)
         return [group for group in all_groups
                 if group.name not in excluded_groups]
@@ -285,16 +288,16 @@ class Group(vdm.sqlalchemy.RevisionedObjectMixin,
 
         elif self.is_organization and user_id:
             query = meta.Session.query(Member) \
-                    .filter(Member.state == 'active') \
-                    .filter(Member.table_name == 'user') \
-                    .filter(Member.group_id == self.id) \
-                    .filter(Member.table_id == user_id)
+                        .filter(Member.state == 'active') \
+                        .filter(Member.table_name == 'user') \
+                        .filter(Member.group_id == self.id) \
+                        .filter(Member.table_id == user_id)
             user_is_org_member = len(query.all()) != 0
 
         query = meta.Session.query(_package.Package).\
-            filter(_package.Package.state == core.State.ACTIVE).\
-            filter(group_table.c.id == self.id).\
-            filter(member_table.c.state == 'active')
+                filter(_package.Package.state == core.State.ACTIVE).\
+                filter(group_table.c.id == self.id).\
+                filter(member_table.c.state == 'active')
 
         # orgs do not show private datasets unless the user is a member
         if self.is_organization and not user_is_org_member:
@@ -311,18 +314,15 @@ class Group(vdm.sqlalchemy.RevisionedObjectMixin,
         if limit is not None:
             query = query.limit(limit)
 
-        if return_query:
-            return query
-        else:
-            return query.all()
+        return query if return_query else query.all()
 
     @classmethod
     def search_by_name_or_title(cls, text_query, group_type=None,
                                 is_org=False, limit=20):
         text_query = text_query.strip().lower()
-        q = meta.Session.query(cls) \
-            .filter(or_(cls.name.contains(text_query),
-                        cls.title.ilike('%' + text_query + '%')))
+        q = meta.Session.query(cls).filter(
+            or_(cls.name.contains(text_query), cls.title.ilike(f'%{text_query}%'))
+        )
         if is_org:
             q = q.filter(cls.type == 'organization')
         else:
@@ -339,7 +339,7 @@ class Group(vdm.sqlalchemy.RevisionedObjectMixin,
             return
         package = _package.Package.by_name(package_name)
         assert package
-        if not package in self.packages():
+        if package not in self.packages():
             member = Member(group=self, table_id=package.id,
                             table_name='package')
             meta.Session.add(member)
@@ -352,22 +352,22 @@ class Group(vdm.sqlalchemy.RevisionedObjectMixin,
         results = {}
         from group_extra import GroupExtra
         for grp_rev in self.all_revisions:
-            if not grp_rev.revision in results:
+            if grp_rev.revision not in results:
                 results[grp_rev.revision] = []
             results[grp_rev.revision].append(grp_rev)
         for class_ in [Member, GroupExtra]:
             rev_class = class_.__revision_class__
             obj_revisions = meta.Session.query(rev_class).\
-                filter_by(group_id=self.id).all()
+                    filter_by(group_id=self.id).all()
             for obj_rev in obj_revisions:
-                if not obj_rev.revision in results:
+                if obj_rev.revision not in results:
                     results[obj_rev.revision] = []
                 results[obj_rev.revision].append(obj_rev)
         result_list = results.items()
         return sorted(result_list, key=lambda x: x[0].timestamp, reverse=True)
 
     def __repr__(self):
-        return '<Group %s>' % self.name
+        return f'<Group {self.name}>'
 
 meta.mapper(Group, group_table,
             extension=[vdm.sqlalchemy.Revisioner(group_revision_table), ], )

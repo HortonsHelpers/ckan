@@ -97,7 +97,7 @@ def make_plugin(secret=None,
     if secretfile:
         secretfile = os.path.abspath(os.path.expanduser(secretfile))
         if not os.path.exists(secretfile):
-            raise ValueError("No such 'secretfile': %s" % secretfile)
+            raise ValueError(f"No such 'secretfile': {secretfile}")
         secret = open(secretfile).read().strip()
     if timeout:
         timeout = int(timeout)
@@ -105,13 +105,14 @@ def make_plugin(secret=None,
         reissue_time = int(reissue_time)
     if userid_checker is not None:
         userid_checker = resolveDotted(userid_checker)
-    plugin = CkanAuthTktCookiePlugin(httponly,
-                                     samesite,
-                                     secret,
-                                     cookie_name,
-                                     secure,
-                                     _bool(include_ip),
-                                     timeout,
-                                     reissue_time,
-                                     userid_checker)
-    return plugin
+    return CkanAuthTktCookiePlugin(
+        httponly,
+        samesite,
+        secret,
+        cookie_name,
+        secure,
+        _bool(include_ip),
+        timeout,
+        reissue_time,
+        userid_checker,
+    )

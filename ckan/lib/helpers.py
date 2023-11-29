@@ -5,6 +5,7 @@
 Consists of functions to typically be used within templates, but also
 available to Controllers. This module is available to templates as 'h'.
 '''
+
 import email.utils
 import datetime
 import logging
@@ -57,11 +58,25 @@ log = logging.getLogger(__name__)
 
 DEFAULT_FACET_NAMES = u'organization groups tags res_format license_id'
 
-MARKDOWN_TAGS = set([
-    'del', 'dd', 'dl', 'dt', 'h1', 'h2',
-    'h3', 'img', 'kbd', 'p', 'pre', 's',
-    'sup', 'sub', 'strike', 'br', 'hr'
-]).union(ALLOWED_TAGS)
+MARKDOWN_TAGS = {
+    'del',
+    'dd',
+    'dl',
+    'dt',
+    'h1',
+    'h2',
+    'h3',
+    'img',
+    'kbd',
+    'p',
+    'pre',
+    's',
+    'sup',
+    'sub',
+    'strike',
+    'br',
+    'hr',
+}.union(ALLOWED_TAGS)
 
 MARKDOWN_ATTRIBUTES = copy.deepcopy(ALLOWED_ATTRIBUTES)
 MARKDOWN_ATTRIBUTES.setdefault('img', []).extend(['src', 'alt', 'title'])
@@ -123,9 +138,7 @@ def _datestamp_to_datetime(datetime_):
     if isinstance(datetime_, string_types):
         try:
             datetime_ = date_str_to_datetime(datetime_)
-        except TypeError:
-            return None
-        except ValueError:
+        except (TypeError, ValueError):
             return None
     # check we are now a datetime
     if not isinstance(datetime_, datetime.datetime):
@@ -186,7 +199,7 @@ def redirect_to(*args, **kw):
         skip_url_parsing = True
         _url = uargs[0]
 
-    if skip_url_parsing is False:
+    if not skip_url_parsing:
         _url = url_for(*uargs, **kw)
 
     if _url.startswith('/'):
@@ -409,7 +422,7 @@ def _url_for_pylons(*args, **kw):
     if kw.get('controller') == 'api' and kw.get('ver'):
         if (isinstance(kw['ver'], int) or
                 not kw['ver'].startswith('/')):
-            kw['ver'] = '/%s' % kw['ver']
+            kw['ver'] = f"/{kw['ver']}"
 
     # Try to build the URL with routes.url_for
     return _routes_default_url_for(*args, **kw)
@@ -443,9 +456,7 @@ def url_for_static_or_external(*args, **kw):
         url = urlparse.urlparse(str(arg))
         url_is_relative = (url.scheme == '' and url.netloc == '' and
                            not url.path.startswith('/'))
-        if url_is_relative:
-            return '/' + url.geturl()
-        return url.geturl()
+        return f'/{url.geturl()}' if url_is_relative else url.geturl()
 
     if args:
         args = (fix_arg(args[0]), ) + args[1:]
@@ -511,30 +522,30 @@ def _local_url(url_to_amend, **kw):
         # FIXME this can be written better once the merge
         # into the ecportal core is done - Toby
         # we have a special root specified so use that
-        if default_locale:
-            root_path = re.sub('/{{LANG}}', '', root_path)
-        else:
-            root_path = re.sub('{{LANG}}', str(locale), root_path)
+        root_path = (
+            re.sub('/{{LANG}}', '', root_path)
+            if default_locale
+            else re.sub('{{LANG}}', str(locale), root_path)
+        )
         # make sure we don't have a trailing / on the root
         if root_path[-1] == '/':
             root_path = root_path[:-1]
+    elif default_locale:
+        root_path = ''
     else:
-        if default_locale:
-            root_path = ''
-        else:
-            root_path = '/' + str(locale)
+        root_path = f'/{str(locale)}'
 
     url_path = url_to_amend[len(root):]
-    url = '%s%s%s' % (root, root_path, url_path)
+    url = f'{root}{root_path}{url_path}'
 
     # stop the root being added twice in redirects
     if no_root and url_to_amend.startswith(root):
         url = url_to_amend[len(root):]
         if not default_locale:
-            url = '/%s%s' % (locale, url)
+            url = f'/{locale}{url}'
 
     if url == '/packages':
-        error = 'There is a broken url being created %s' % kw
+        error = f'There is a broken url being created {kw}'
         raise ckan.exceptions.CkanUrlException(error)
 
     return url
@@ -583,8 +594,7 @@ def lang_native_name(lang=None):
     ''' Return the language name currently used in it's localised form
         either from parameter or current environ setting'''
     lang = lang or lang()
-    locale = i18n.get_locales_dict().get(lang)
-    if locale:
+    if locale := i18n.get_locales_dict().get(lang):
         return locale.display_name or locale.english_name
     return lang
 
@@ -625,10 +635,7 @@ class Message(object):
     __unicode__ = __str__
 
     def __html__(self):
-        if self.allow_html:
-            return self.message
-        else:
-            return escape(self.message)
+        return self.message if self.allow_html else escape(self.message)
 
 
 class _Flash(object):
@@ -753,7 +760,7 @@ def _link_to(text, *args, **kwargs):
         if kwargs.pop('inner_span', None):
             text = literal('<span>') + text + literal('</span>')
         if icon:
-            text = literal('<i class="fa fa-%s"></i> ' % icon) + text
+            text = literal(f'<i class="fa fa-{icon}"></i> ') + text
         return text
 
     icon = kwargs.pop('icon', None)
@@ -788,13 +795,13 @@ def nav_link_flask(text, *args, **kwargs):
         kwargs['action'] = endpoint or None
     named_route = kwargs.pop('named_route', '')
     if kwargs.pop('condition', True):
-        if named_route:
-            link = _link_to(text, named_route, **kwargs)
-        else:
-            link = _link_to(text, **kwargs)
+        return (
+            _link_to(text, named_route, **kwargs)
+            if named_route
+            else _link_to(text, **kwargs)
+        )
     else:
-        link = ''
-    return link
+        return ''
 
 
 def nav_link_pylons(text, *args, **kwargs):
@@ -806,13 +813,13 @@ def nav_link_pylons(text, *args, **kwargs):
                     'parameter not a positional one')
     named_route = kwargs.pop('named_route', '')
     if kwargs.pop('condition', True):
-        if named_route:
-            link = _link_to(text, named_route, **kwargs)
-        else:
-            link = _link_to(text, **kwargs)
+        return (
+            _link_to(text, named_route, **kwargs)
+            if named_route
+            else _link_to(text, **kwargs)
+        )
     else:
-        link = ''
-    return link
+        return ''
 
 
 @core_helper
@@ -910,9 +917,7 @@ LEGACY_ROUTE_NAMES = {
 
 def map_pylons_to_flask_route_name(menu_item):
     '''returns flask routes for old fashioned route names'''
-    # Pylons to Flask legacy route names mappings
-    mappings = config.get('ckan.legacy_route_mappings')
-    if mappings:
+    if mappings := config.get('ckan.legacy_route_mappings'):
         if isinstance(mappings, string_types):
             LEGACY_ROUTE_NAMES.update(json.loads(mappings))
         elif isinstance(mappings, dict):
@@ -961,15 +966,14 @@ def _make_menu_item(menu_item, title, **kw):
     menu_item = map_pylons_to_flask_route_name(menu_item)
     _menu_items = config['routes.named_routes']
     if menu_item not in _menu_items:
-        raise Exception('menu item `%s` cannot be found' % menu_item)
+        raise Exception(f'menu item `{menu_item}` cannot be found')
     item = copy.copy(_menu_items[menu_item])
     item.update(kw)
     active = _link_active(item)
     needed = item.pop('needed')
     for need in needed:
         if need not in kw:
-            raise Exception('menu item `%s` need parameter `%s`'
-                            % (menu_item, need))
+            raise Exception(f'menu item `{menu_item}` need parameter `{need}`')
     link = _link_to(title, menu_item, suppress_active_class=True, **item)
     if active:
         return literal('<li class="active">') + link + literal('</li>')
@@ -1008,7 +1012,7 @@ def get_facet_items_dict(facet, limit=None, exclude_active=False):
     for facet_item in c.search_facets.get(facet)['items']:
         if not len(facet_item['name'].strip()):
             continue
-        if not (facet, facet_item['name']) in request.params.items():
+        if (facet, facet_item['name']) not in request.params.items():
             facets.append(dict(active=False, **facet_item))
         elif not exclude_active:
             facets.append(dict(active=True, **facet_item))
@@ -1018,9 +1022,7 @@ def get_facet_items_dict(facet, limit=None, exclude_active=False):
         if c.search_facets_limits and limit is None:
             limit = c.search_facets_limits.get(facet)
     # zero treated as infinite for hysterical raisins
-    if limit is not None and limit > 0:
-        return facets[:limit]
-    return facets
+    return facets[:limit] if limit is not None and limit > 0 else facets
 
 
 @core_helper
@@ -1043,15 +1045,13 @@ def has_more_facets(facet, limit=None, exclude_active=False):
     for facet_item in c.search_facets.get(facet)['items']:
         if not len(facet_item['name'].strip()):
             continue
-        if not (facet, facet_item['name']) in request.params.items():
+        if (facet, facet_item['name']) not in request.params.items():
             facets.append(dict(active=False, **facet_item))
         elif not exclude_active:
             facets.append(dict(active=True, **facet_item))
     if c.search_facets_limits and limit is None:
         limit = c.search_facets_limits.get(facet)
-    if limit is not None and len(facets) > limit:
-        return True
-    return False
+    return limit is not None and len(facets) > limit
 
 
 @core_helper
@@ -1081,9 +1081,7 @@ def unselected_facet_items(facet, limit=10):
                      'removed.')
 def get_facet_title(name):
     '''Deprecated in ckan 2.0 '''
-    # if this is set in the config use this
-    config_title = config.get('search.facets.%s.title' % name)
-    if config_title:
+    if config_title := config.get(f'search.facets.{name}.title'):
         return config_title
 
     facet_titles = {'organization': _('Organizations'),
@@ -1107,7 +1105,7 @@ def _url_with_params(url, params):
         return url
     params = [(k, v.encode('utf-8') if isinstance(v, string_types) else str(v))
               for k, v in params]
-    return url + u'?' + urlencode(params)
+    return f'{url}?{urlencode(params)}'
 
 
 def _search_url(params):
@@ -1190,7 +1188,7 @@ def linked_user(user, maxlength=0, avatar=20):
         displayname = user.display_name
 
         if maxlength and len(user.display_name) > maxlength:
-            displayname = displayname[:maxlength] + '...'
+            displayname = f'{displayname[:maxlength]}...'
 
         return tags.literal(u'{icon} {link}'.format(
             icon=gravatar(
@@ -1207,9 +1205,7 @@ def linked_user(user, maxlength=0, avatar=20):
 @core_helper
 def group_name_to_title(name):
     group = model.Group.by_name(name)
-    if group is not None:
-        return group.display_name
-    return name
+    return group.display_name if group is not None else name
 
 
 @core_helper
@@ -1237,7 +1233,7 @@ def markdown_extract(text, extract_length=190):
 
 @core_helper
 def icon_url(name):
-    return url_for_static('/images/icons/%s.png' % name)
+    return url_for_static(f'/images/icons/{name}.png')
 
 
 @core_helper
@@ -1256,14 +1252,7 @@ def icon(name, alt=None, inline=True):
 
 @core_helper
 def resource_icon(res):
-    if False:
-        icon_name = 'page_white'
-        # if (res.is_404?): icon_name = 'page_white_error'
-        # also: 'page_white_gear'
-        # also: 'page_white_link'
-        return icon(icon_name)
-    else:
-        return icon(format_icon(res.get('format', '')))
+    return icon(format_icon(res.get('format', '')))
 
 
 @core_helper
@@ -1281,9 +1270,7 @@ def format_icon(_format):
         return 'page_white_database'
     if ('plain text' in _format):
         return 'page_white_text'
-    if ('xml' in _format):
-        return 'page_white_code'
-    return 'page_white'
+    return 'page_white_code' if ('xml' in _format) else 'page_white'
 
 
 @core_helper
@@ -1302,9 +1289,10 @@ def dict_list_reduce(list_, key, unique=True):
 @core_helper
 def linked_gravatar(email_hash, size=100, default=None):
     return literal(
-        '<a href="https://gravatar.com/" target="_blank" ' +
-        'title="%s" alt="">' % _('Update your avatar at gravatar.com') +
-        '%s</a>' % gravatar(email_hash, size, default)
+        (
+            f"""<a href="https://gravatar.com/" target="_blank" title="{_('Update your avatar at gravatar.com')}" alt="">"""
+            + f'{gravatar(email_hash, size, default)}</a>'
+        )
     )
 
 
@@ -1375,7 +1363,7 @@ class Page(paginate.Page):
         html = re.sub(dotdot, dotdot_link, html)
 
         # Convert current page
-        text = '%s' % self.page
+        text = f'{self.page}'
         current_page_span = str(HTML.span(c=text, **self.curpage_attr))
         current_page_link = self._pagerlink(self.page, text,
                                             extra_attributes=self.curpage_attr)
@@ -1487,8 +1475,7 @@ def date_str_to_datetime(date_str):
         m = re.match('(?P<seconds>\d{2})(\.(?P<microseconds>\d{6}))?$',
                      time_tuple[5])
         if not m:
-            raise ValueError('Unable to parse %s as seconds.microseconds' %
-                             time_tuple[5])
+            raise ValueError(f'Unable to parse {time_tuple[5]} as seconds.microseconds')
         seconds = int(m.groupdict().get('seconds'))
         microseconds = int(m.groupdict(0).get('microseconds'))
         time_tuple = time_tuple[:5] + [seconds, microseconds]
@@ -1523,13 +1510,11 @@ def parse_rfc_2822_date(date_str, assume_utc=True):
     if not time_tuple:
         return None
 
-    # No timezone information available in the string
     if time_tuple[-1] is None and not assume_utc:
         return datetime.datetime.fromtimestamp(
             email.utils.mktime_tz(time_tuple))
-    else:
-        offset = 0 if time_tuple[-1] is None else time_tuple[-1]
-        tz_info = _RFC2282TzInfo(offset)
+    offset = 0 if time_tuple[-1] is None else time_tuple[-1]
+    tz_info = _RFC2282TzInfo(offset)
     return datetime.datetime(*time_tuple[:6], microsecond=0, tzinfo=tz_info)
 
 
@@ -1586,19 +1571,16 @@ def time_ago_from_timestamp(timestamp):
 
     :rtype: string
     '''
-    datetime_ = _datestamp_to_datetime(timestamp)
-    if not datetime_:
+    if datetime_ := _datestamp_to_datetime(timestamp):
+        # the localised date
+        return formatters.localised_nice_date(datetime_, show_date=False)
+    else:
         return _('Unknown')
-
-    # the localised date
-    return formatters.localised_nice_date(datetime_, show_date=False)
 
 
 @core_helper
 def button_attr(enable, type='primary'):
-    if enable:
-        return 'class="btn %s"' % type
-    return 'disabled class="btn disabled"'
+    return f'class="btn {type}"' if enable else 'disabled class="btn disabled"'
 
 
 @core_helper
@@ -1636,7 +1618,7 @@ def resource_display_name(resource_dict):
         description = description.split('.')[0]
         max_len = 60
         if len(description) > max_len:
-            description = description[:max_len] + '...'
+            description = f'{description[:max_len]}...'
         return description
     else:
         return _("Unnamed resource")
@@ -1689,16 +1671,16 @@ def auto_log_message():
 
 @core_helper
 def activity_div(template, activity, actor, object=None, target=None):
-    actor = '<span class="actor">%s</span>' % actor
+    actor = f'<span class="actor">{actor}</span>'
     if object:
-        object = '<span class="object">%s</span>' % object
+        object = f'<span class="object">{object}</span>'
     if target:
-        target = '<span class="target">%s</span>' % target
+        target = f'<span class="target">{target}</span>'
     rendered_datetime = render_datetime(activity['timestamp'])
-    date = '<span class="date">%s</span>' % rendered_datetime
+    date = f'<span class="date">{rendered_datetime}</span>'
     template = template.format(actor=actor, date=date,
                                object=object, target=target)
-    template = '<div class="activity">%s %s</div>' % (template, date)
+    template = f'<div class="activity">{template} {date}</div>'
     return literal(template)
 
 
@@ -1770,7 +1752,7 @@ def follow_button(obj_type, obj_id):
     # If the user is logged in show the follow/unfollow button
     if c.user:
         context = {'model': model, 'session': model.Session, 'user': c.user}
-        action = 'am_following_%s' % obj_type
+        action = f'am_following_{obj_type}'
         following = logic.get_action(action)(context, {'id': obj_id})
         return snippet('snippets/follow_button.html',
                        following=following,
@@ -1794,7 +1776,7 @@ def follow_count(obj_type, obj_id):
     '''
     obj_type = obj_type.lower()
     assert obj_type in _follow_objects
-    action = '%s_follower_count' % obj_type
+    action = f'{obj_type}_follower_count'
     context = {'model': model, 'session': model.Session, 'user': c.user}
     return logic.get_action(action)(context, {'id': obj_id})
 
@@ -1858,11 +1840,7 @@ def remove_url_param(key, value=None, replace=None, controller=None,
     instead.
 
     '''
-    if isinstance(key, string_types):
-        keys = [key]
-    else:
-        keys = key
-
+    keys = [key] if isinstance(key, string_types) else key
     params_nopage = [(k, v) for k, v in request.params.items() if k != 'page']
     params = list(params_nopage)
     if value:
@@ -1915,7 +1893,7 @@ def urls_for_resource(resource):
         else:
             relpath = resource.relpath
 
-        out.append('%s/%s' % (root_path, relpath))
+        out.append(f'{root_path}/{relpath}')
     return out
 
 
@@ -2027,10 +2005,7 @@ def dashboard_activity_stream(user_id, filter_type=None, filter_id=None,
 
 @core_helper
 def recently_changed_packages_activity_stream(limit=None):
-    if limit:
-        data_dict = {'limit': limit}
-    else:
-        data_dict = {}
+    data_dict = {'limit': limit} if limit else {}
     context = {'model': model, 'session': model.Session, 'user': c.user}
     return logic.get_action('recently_changed_packages_activity_list_html')(
         context, data_dict)
@@ -2129,12 +2104,11 @@ def html_auto_link(data):
     def makelink(matchobj):
         obj = matchobj.group(1)
         name = matchobj.group(2)
-        title = '%s:%s' % (obj, name)
+        title = f'{obj}:{name}'
         return LINK_FNS[obj]({'name': name.strip('"'), 'title': title})
 
     def link(matchobj):
-        return '<a href="%s" target="_blank" rel="nofollow">%s</a>' \
-            % (matchobj.group(1), matchobj.group(1))
+        return f'<a href="{matchobj.group(1)}" target="_blank" rel="nofollow">{matchobj.group(1)}</a>'
 
     def process(matchobj):
         data = matchobj.group(2)
@@ -2202,8 +2176,7 @@ def format_resource_items(items):
                 value = formatters.localised_number(float(value))
             elif re.search(reg_ex_int, value):
                 value = formatters.localised_number(int(value))
-        elif ((isinstance(value, int) or isinstance(value, float))
-                and value not in (True, False)):
+        elif (isinstance(value, (int, float))) and value not in (True, False):
             value = formatters.localised_number(value)
         key = key.replace('_', ' ')
         output.append((key, value))
@@ -2388,8 +2361,7 @@ def SI_number_span(number):
     if number < 1000:
         output = literal('<span>')
     else:
-        output = literal('<span title="' + formatters.localised_number(number)
-                         + '">')
+        output = literal(f'<span title="{formatters.localised_number(number)}">')
     return output + formatters.localised_SI_number(number) + literal('</span>')
 
 
@@ -2416,9 +2388,7 @@ def new_activities():
 
 @core_helper
 def uploads_enabled():
-    if uploader.get_storage_path():
-        return True
-    return False
+    return bool(uploader.get_storage_path())
 
 
 @core_helper
@@ -2427,11 +2397,12 @@ def get_featured_organizations(count=1):
     of organization_list action function
     '''
     config_orgs = config.get('ckan.featured_orgs', '').split()
-    orgs = featured_group_org(get_action='organization_show',
-                              list_action='organization_list',
-                              count=count,
-                              items=config_orgs)
-    return orgs
+    return featured_group_org(
+        get_action='organization_show',
+        list_action='organization_list',
+        count=count,
+        items=config_orgs,
+    )
 
 
 @core_helper
@@ -2440,11 +2411,12 @@ def get_featured_groups(count=1):
     of organization_list action function
     '''
     config_groups = config.get('ckan.featured_groups', '').split()
-    groups = featured_group_org(get_action='group_show',
-                                list_action='group_list',
-                                count=count,
-                                items=config_groups)
-    return groups
+    return featured_group_org(
+        get_action='group_show',
+        list_action='group_list',
+        count=count,
+        items=config_groups,
+    )
 
 
 @core_helper
@@ -2485,9 +2457,11 @@ def featured_group_org(items, get_action, list_action, count):
 
 @core_helper
 def get_site_statistics():
-    stats = {}
-    stats['dataset_count'] = logic.get_action('package_search')(
-        {}, {"rows": 1})['count']
+    stats = {
+        'dataset_count': logic.get_action('package_search')({}, {"rows": 1})[
+            'count'
+        ]
+    }
     stats['group_count'] = len(logic.get_action('group_list')({}, {}))
     stats['organization_count'] = len(
         logic.get_action('organization_list')({}, {}))
@@ -2511,20 +2485,19 @@ def resource_formats():
     '''
     global _RESOURCE_FORMATS
     if not _RESOURCE_FORMATS:
-        _RESOURCE_FORMATS = {}
         format_file_path = config.get('ckan.resource_formats')
         if not format_file_path:
             format_file_path = os.path.join(
                 os.path.dirname(os.path.realpath(ckan.config.__file__)),
                 'resource_formats.json'
             )
+        _RESOURCE_FORMATS = {}
         with open(format_file_path) as format_file:
             try:
                 file_resource_formats = json.loads(format_file.read())
             except ValueError as e:
                 # includes simplejson.decoder.JSONDecodeError
-                raise ValueError('Invalid JSON syntax in %s: %s' %
-                                 (format_file_path, e))
+                raise ValueError(f'Invalid JSON syntax in {format_file_path}: {e}')
 
             for format_line in file_resource_formats:
                 if format_line[0] == '_comment':
@@ -2536,9 +2509,9 @@ def resource_formats():
                         item = item.lower()
                         if item in _RESOURCE_FORMATS \
                                 and _RESOURCE_FORMATS[item] != line:
-                            raise ValueError('Duplicate resource format '
-                                             'identifier in %s: %s' %
-                                             (format_file_path, item))
+                            raise ValueError(
+                                f'Duplicate resource format identifier in {format_file_path}: {item}'
+                            )
                         _RESOURCE_FORMATS[item] = line
 
     return _RESOURCE_FORMATS
@@ -2548,11 +2521,7 @@ def resource_formats():
 def unified_resource_format(format):
     formats = resource_formats()
     format_clean = format.lower()
-    if format_clean in formats:
-        format_new = formats[format_clean][1]
-    else:
-        format_new = format
-    return format_new
+    return formats[format_clean][1] if format_clean in formats else format
 
 
 @core_helper
@@ -2591,7 +2560,7 @@ def license_options(existing_license_id=None):
 def get_translated(data_dict, field):
     language = i18n.get_lang()
     try:
-        return data_dict[field + u'_translated'][language]
+        return data_dict[f'{field}_translated'][language]
     except KeyError:
         val = data_dict.get(field, '')
         return _(val) if val and isinstance(val, string_types) else val
@@ -2607,8 +2576,7 @@ def facets():
 def mail_to(email_address, name):
     email = escape(email_address)
     author = escape(name)
-    html = Markup(u'<a href=mailto:{0}>{1}</a>'.format(email, author))
-    return html
+    return Markup(u'<a href=mailto:{0}>{1}</a>'.format(email, author))
 
 
 @core_helper

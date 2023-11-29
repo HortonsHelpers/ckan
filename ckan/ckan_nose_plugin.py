@@ -83,8 +83,10 @@ class CkanNose(Plugin):
             help='drop database and reinitialize before tests are run')
 
     def wantClass(self, cls):
-        if self.segments and str(hashlib.md5(
-                cls.__name__).hexdigest())[0] not in self.segments:
+        if (
+            self.segments
+            and hashlib.md5(cls.__name__).hexdigest()[0] not in self.segments
+        ):
             return False
 
     def wantFunction(self, fn):
@@ -94,7 +96,7 @@ class CkanNose(Plugin):
 
     def finalize(self, report):
         if self.segments:
-            print('Segments: %s' % self.segments)
+            print(f'Segments: {self.segments}')
 
     def configure(self, settings, config):
         CkanNose.settings = settings

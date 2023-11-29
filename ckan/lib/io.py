@@ -30,7 +30,7 @@ def encode_path(p):
     Raises a ``TypeError`` is the input is not a Unicode string.
     '''
     if not isinstance(p, text_type):
-        raise TypeError(u'Can only encode unicode, not {}'.format(type(p)))
+        raise TypeError(f'Can only encode unicode, not {type(p)}')
     return p.encode(_FILESYSTEM_ENCODING)
 
 
@@ -49,5 +49,5 @@ def decode_path(p):
     Raises a ``TypeError`` if the input is not a byte string.
     '''
     if not isinstance(p, str):
-        raise TypeError(u'Can only decode str, not {}'.format(type(p)))
+        raise TypeError(f'Can only decode str, not {type(p)}')
     return p.decode(_FILESYSTEM_ENCODING)

@@ -83,7 +83,7 @@ class RevisionController(base.BaseController):
                             package_revision = pr
                             break
                     if package_revision and package_revision.state == \
-                            model.State.DELETED:
+                                model.State.DELETED:
                         transition = 'deleted'
                     elif package_revision and count == number:
                         transition = 'created'
@@ -95,21 +95,21 @@ class RevisionController(base.BaseController):
                                 break
                         for package_extra_revision in package_extra_revisions:
                             if package_extra_revision.package_id == \
-                                    package.id:
+                                        package.id:
                                 if package_extra_revision.key == \
-                                        'date_updated':
+                                            'date_updated':
                                     transition += ':date_updated'
                                     break
-                    indication = "%s:%s" % (package.name, transition)
+                    indication = f"{package.name}:{transition}"
                     package_indications.append(indication)
-                pkgs = u'[%s]' % ' '.join(package_indications)
-                item_title = u'r%s ' % (revision.id)
+                pkgs = f"[{' '.join(package_indications)}]"
+                item_title = f'r{revision.id} '
                 item_title += pkgs
                 if revision.message:
-                    item_title += ': %s' % (revision.message or '')
+                    item_title += f": {revision.message or ''}"
                 item_link = h.url_for(controller='revision', action='read', id=revision.id)
                 item_description = _('Datasets affected: %s.\n') % pkgs
-                item_description += '%s' % (revision.message or '')
+                item_description += f"{revision.message or ''}"
                 item_author_name = revision.author
                 item_pubdate = revision.timestamp
                 feed.add_item(
@@ -126,11 +126,7 @@ class RevisionController(base.BaseController):
             revs = query.limit(20).all()
             filtered_revs = []
             for rev in list(revs):
-                private_rev = False
-                for pkg in rev.packages:
-                    if pkg.private:
-                        private_rev = True
-                        break
+                private_rev = any(pkg.private for pkg in rev.packages)
                 if not private_rev:
                     filtered_revs.append(rev)
 

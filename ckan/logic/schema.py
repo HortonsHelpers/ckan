@@ -649,14 +649,13 @@ def default_package_search_schema(
 @validator_args
 def default_resource_search_schema(
         ignore_missing, unicode_safe, natural_number_validator):
-    schema = {
+    return {
         'query': [ignore_missing],  # string or list of strings
         'fields': [ignore_missing],  # dict of fields
         'order_by': [ignore_missing, unicode_safe],
         'offset': [ignore_missing, natural_number_validator],
-        'limit': [ignore_missing, natural_number_validator]
+        'limit': [ignore_missing, natural_number_validator],
     }
-    return schema
 
 
 def create_schema_for_required_keys(keys):

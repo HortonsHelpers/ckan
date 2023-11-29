@@ -10,21 +10,12 @@ log = logging.getLogger(__name__)
 
 def activity_stream_item(obj, activity_type, revision, user_id):
     method = getattr(obj, "activity_stream_item", None)
-    if callable(method):
-        return method(activity_type, revision, user_id)
-    else:
-        # Object did not have a suitable activity_stream_item() method; it must
-        # not be a package
-        return None
+    return method(activity_type, revision, user_id) if callable(method) else None
 
 
 def activity_stream_detail(obj, activity_id, activity_type):
     method = getattr(obj, "activity_stream_detail", None)
-    if callable(method):
-        return method(activity_id, activity_type)
-    else:
-        # Object did not have a suitable activity_stream_detail() method
-        return None
+    return method(activity_id, activity_type) if callable(method) else None
 
 
 class DatasetActivitySessionExtension(SessionExtension):
@@ -54,14 +45,7 @@ class DatasetActivitySessionExtension(SessionExtension):
             # session had no _object_cache or no revision; skipping this commit
             return
 
-        if revision.user:
-            user_id = revision.user.id
-        else:
-            # If the user is not logged in then revision.user is None and
-            # revision.author is their IP address. Just log them as 'not logged
-            # in' rather than logging their IP address.
-            user_id = 'not logged in'
-
+        user_id = revision.user.id if revision.user else 'not logged in'
         # The top-level objects that we will append to the activity table. The
         # keys here are package IDs, and the values are model.activity:Activity
         # objects.
@@ -133,7 +117,7 @@ class DatasetActivitySessionExtension(SessionExtension):
                     activity_detail = activity_stream_detail(
                         obj, activity.id, activity_type)
                     if activity_detail is not None:
-                        if not package.id in activities:
+                        if package.id not in activities:
                             activities[package.id] = activity
                         if activity_details.has_key(activity.id):
                             activity_details[activity.id].append(
@@ -141,11 +125,11 @@ class DatasetActivitySessionExtension(SessionExtension):
                         else:
                             activity_details[activity.id] = [activity_detail]
 
-        for key, activity in activities.items():
+        for activity in activities.values():
             # Emitting activity
             session.add(activity)
 
-        for key, activity_detail_list in activity_details.items():
+        for activity_detail_list in activity_details.values():
             for activity_detail_obj in activity_detail_list:
                 # Emitting activity detail
                 session.add(activity_detail_obj)

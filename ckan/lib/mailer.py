@@ -46,10 +46,10 @@ def _mail_recipient(recipient_name, recipient_email,
     subject = Header(subject.encode('utf-8'), 'utf-8')
     msg['Subject'] = subject
     msg['From'] = _("%s <%s>") % (sender_name, mail_from)
-    recipient = u"%s <%s>" % (recipient_name, recipient_email)
+    recipient = f"{recipient_name} <{recipient_email}>"
     msg['To'] = Header(recipient, 'utf-8')
     msg['Date'] = Utils.formatdate(time())
-    msg['X-Mailer'] = "CKAN %s" % ckan.__version__
+    msg['X-Mailer'] = f"CKAN {ckan.__version__}"
 
     # Send the email using Python's smtplib.
     smtp_connection = smtplib.SMTP()
@@ -71,8 +71,9 @@ def _mail_recipient(recipient_name, recipient_email,
         smtp_connection.connect(smtp_server)
     except socket.error as e:
         log.exception(e)
-        raise MailerException('SMTP server could not be connected to: "%s" %s'
-                              % (smtp_server, e))
+        raise MailerException(
+            f'SMTP server could not be connected to: "{smtp_server}" {e}'
+        )
     try:
         # Identify ourselves and prompt the server for supported features.
         smtp_connection.ehlo()
@@ -80,13 +81,12 @@ def _mail_recipient(recipient_name, recipient_email,
         # If 'smtp.starttls' is on in CKAN config, try to put the SMTP
         # connection into TLS mode.
         if smtp_starttls:
-            if smtp_connection.has_extn('STARTTLS'):
-                smtp_connection.starttls()
-                # Re-identify ourselves over TLS connection.
-                smtp_connection.ehlo()
-            else:
+            if not smtp_connection.has_extn('STARTTLS'):
                 raise MailerException("SMTP server does not support STARTTLS")
 
+            smtp_connection.starttls()
+            # Re-identify ourselves over TLS connection.
+            smtp_connection.ehlo()
         # If 'smtp.user' is in CKAN config, try to login to SMTP server.
         if smtp_user:
             assert smtp_password, ("If smtp.user is configured then "

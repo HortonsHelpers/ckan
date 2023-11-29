@@ -75,7 +75,7 @@ class TestApiController(helpers.FunctionalTestBase):
         app = self._get_test_app()
         org_url = '/api/action/tag_delete'
         data_dict = {'id': u'Delta symbol: \u0394'}  # unicode gets rec'd ok
-        postparams = '%s=1' % json.dumps(data_dict)
+        postparams = f'{json.dumps(data_dict)}=1'
         response = app.post(url=org_url, params=postparams, status=404)
         # The unicode is backslash encoded (because that is the default when
         # you do str(exception) )
@@ -374,7 +374,7 @@ class TestRevisionSearch(helpers.FunctionalTestBase):
         rev_ids = self._create_revisions(4)
         app = self._get_test_app()
 
-        response = app.get('/api/2/search/revision?since_id=%s' % rev_ids[1])
+        response = app.get(f'/api/2/search/revision?since_id={rev_ids[1]}')
 
         res = json.loads(response.body)
         assert_equal(res, rev_ids[2:])
@@ -384,8 +384,9 @@ class TestRevisionSearch(helpers.FunctionalTestBase):
         app = self._get_test_app()
 
         rev1 = model.Session.query(model.Revision).get(rev_ids[1])
-        response = app.get('/api/2/search/revision?since_time=%s'
-                           % rev1.timestamp.isoformat())
+        response = app.get(
+            f'/api/2/search/revision?since_time={rev1.timestamp.isoformat()}'
+        )
 
         res = json.loads(response.body)
         assert_equal(res, rev_ids[2:])
@@ -394,7 +395,7 @@ class TestRevisionSearch(helpers.FunctionalTestBase):
         rev_ids = self._create_revisions(55)
         app = self._get_test_app()
 
-        response = app.get('/api/2/search/revision?since_id=%s' % rev_ids[1])
+        response = app.get(f'/api/2/search/revision?since_id={rev_ids[1]}')
 
         res = json.loads(response.body)
         assert_equal(res, rev_ids[2:52])  # i.e. limited to 50

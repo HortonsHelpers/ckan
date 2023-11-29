@@ -160,7 +160,7 @@ def create_uuids(migrate_engine, primary_table_name, revision_table_name):
     # fetchall wouldn't be optimal with really large sets of data but here <20k
     ids = [ res[0] for res in
             migrate_engine.execute(select([primary_table.c.id])).fetchall() ]
-    for count,id in enumerate(ids):
+    for id in ids:
         # if count % 100 == 0: print(count, id)
         myuuid = make_uuid()
         update = primary_table.update().where(primary_table.c.id==id).values(id=myuuid)
@@ -179,15 +179,13 @@ def drop_sequencies(migrate_engine):
                  'revision', 'tag']
 
     for sequence in sequences:
-        migrate_engine.execute('ALTER TABLE %s ALTER COLUMN id DROP DEFAULT;' % sequence)
+        migrate_engine.execute(f'ALTER TABLE {sequence} ALTER COLUMN id DROP DEFAULT;')
 
     for sequence in sequences:
         try:
-            migrate_engine.execute('drop sequence %s_id_seq;' % sequence)
+            migrate_engine.execute(f'drop sequence {sequence}_id_seq;')
         except sqlalchemy.exc.ProgrammingError as e:
-            if 'sequence "{}_id_seq" does not exist'.format(sequence) in str(e):
-                pass
-            else:
+            if f'sequence "{sequence}_id_seq" does not exist' not in str(e):
                 raise
 
 

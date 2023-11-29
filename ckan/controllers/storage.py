@@ -29,8 +29,8 @@ _eq_re = re.compile(r"^(.*)(=[0-9]*)$")
 
 def create_pairtree_marker(folder):
     """ Creates the pairtree marker for tests if it doesn't exist """
-    if not folder[:-1] == '/':
-        folder = folder + '/'
+    if folder[:-1] != '/':
+        folder = f'{folder}/'
 
     directory = os.path.dirname(folder)
     if not os.path.exists(directory):
@@ -47,18 +47,16 @@ def get_ofs():
     """Return a configured instance of the appropriate OFS driver.
     """
     storage_backend = config['ofs.impl']
-    kw = {}
-    for k, v in config.items():
-        if not k.startswith('ofs.') or k == 'ofs.impl':
-            continue
-        kw[k[4:]] = v
-
+    kw = {
+        k[4:]: v
+        for k, v in config.items()
+        if k.startswith('ofs.') and k != 'ofs.impl'
+    }
     # Make sure we have created the marker file to avoid pairtree issues
     if storage_backend == 'pairtree' and 'storage_dir' in kw:
         create_pairtree_marker(kw['storage_dir'])
 
-    ofs = get_impl(storage_backend)(**kw)
-    return ofs
+    return get_impl(storage_backend)(**kw)
 
 
 class StorageController(BaseController):

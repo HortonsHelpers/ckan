@@ -43,8 +43,7 @@ class ModelFollowingModel(domain_object.DomainObject):
     def followee_list(cls, follower_id):
         '''Return a list of objects followed by the follower.'''
         query = cls._get_followees(follower_id).all()
-        followees = cls._filter_following_objects(query)
-        return followees
+        return cls._filter_following_objects(query)
 
     @classmethod
     def follower_count(cls, object_id):
@@ -55,8 +54,7 @@ class ModelFollowingModel(domain_object.DomainObject):
     def follower_list(cls, object_id):
         '''Return a list of followers of the object.'''
         query = cls._get_followers(object_id).all()
-        followers = cls._filter_following_objects(query)
-        return followers
+        return cls._filter_following_objects(query)
 
     @classmethod
     def _filter_following_objects(cls, query):
